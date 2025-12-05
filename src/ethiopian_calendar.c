@@ -461,3 +461,100 @@ from_ethiopian_date(PG_FUNCTION_ARGS)
     PG_RETURN_TIMESTAMP(result_timestamp);
 }
 
+/*
+ * PostgreSQL function: current_ethiopian_date()
+ * 
+ * Returns the current date in Ethiopian calendar as text.
+ * This function is STABLE (not IMMUTABLE) because it depends on the current time.
+ * 
+ * Returns: TEXT (current Ethiopian calendar date as string in format YYYY-MM-DD)
+ */
+PG_FUNCTION_INFO_V1(current_ethiopian_date);
+
+Datum
+current_ethiopian_date(PG_FUNCTION_ARGS)
+{
+    Timestamp current_ts;
+    DateADT date_val;
+    int greg_year, greg_month, greg_day;
+    int jdn;
+    int eth_year, eth_month, eth_day;
+    char result_str[12];
+    text *result;
+    
+    /* Get current timestamp */
+    current_ts = GetCurrentTimestamp();
+    
+    /* Extract date component from timestamp */
+    date_val = DatumGetDateADT(DirectFunctionCall1(timestamp_date, TimestampGetDatum(current_ts)));
+    
+    /* Convert PostgreSQL DATE to Gregorian components */
+    dateadt_to_gregorian(date_val, &greg_year, &greg_month, &greg_day);
+    
+    /* Convert Gregorian date to Julian Day Number */
+    jdn = gregorian_to_jdn(greg_year, greg_month, greg_day);
+    
+    /* Convert JDN to Ethiopian calendar */
+    jdn_to_ethiopian(jdn, &eth_year, &eth_month, &eth_day);
+    
+    /* Format as YYYY-MM-DD */
+    snprintf(result_str, sizeof(result_str), "%04d-%02d-%02d", eth_year, eth_month, eth_day);
+    
+    result = cstring_to_text(result_str);
+    PG_RETURN_TEXT_P(result);
+}
+
+/*
+ * PostgreSQL function: to_ethiopian_timestamp(timestamp)
+ * 
+ * Converts a Gregorian timestamp to an Ethiopian calendar TIMESTAMP.
+ * The date is converted to Ethiopian calendar; the time-of-day remains the same.
+ * This function returns TIMESTAMP (without time zone) for use in generated columns.
+ * 
+ * Returns: TIMESTAMP (Ethiopian calendar date with original time preserved)
+ */
+PG_FUNCTION_INFO_V1(to_ethiopian_timestamp);
+
+Datum
+to_ethiopian_timestamp(PG_FUNCTION_ARGS)
+{
+    Timestamp timestamp_val;
+    DateADT date_val;
+    int eth_year, eth_month, eth_day;
+    int greg_year, greg_month, greg_day;
+    int jdn;
+    DateADT eth_date;
+    Timestamp result_timestamp;
+    TimeOffset time_offset;
+    
+    /* Handle NULL input */
+    if (PG_ARGISNULL(0))
+        PG_RETURN_NULL();
+    
+    /* Get the timestamp value */
+    timestamp_val = PG_GETARG_TIMESTAMP(0);
+    
+    /* Extract date and time components */
+    date_val = DatumGetDateADT(DirectFunctionCall1(timestamp_date, TimestampGetDatum(timestamp_val)));
+    time_offset = timestamp_val - (date_val * USECS_PER_DAY);
+    
+    /* Convert PostgreSQL DATE to Gregorian components */
+    dateadt_to_gregorian(date_val, &greg_year, &greg_month, &greg_day);
+    
+    /* Convert Gregorian date to Julian Day Number */
+    jdn = gregorian_to_jdn(greg_year, greg_month, greg_day);
+    
+    /* Convert JDN to Ethiopian calendar */
+    jdn_to_ethiopian(jdn, &eth_year, &eth_month, &eth_day);
+    
+    /* Convert Ethiopian date back to Gregorian DATE (for PostgreSQL storage) */
+    jdn = ethiopian_to_jdn(eth_year, eth_month, eth_day);
+    jdn_to_gregorian(jdn, &greg_year, &greg_month, &greg_day);
+    eth_date = gregorian_to_dateadt(greg_year, greg_month, greg_day);
+    
+    /* Combine Ethiopian date with original time */
+    result_timestamp = (eth_date * USECS_PER_DAY) + time_offset;
+    
+    PG_RETURN_TIMESTAMP(result_timestamp);
+}
+
