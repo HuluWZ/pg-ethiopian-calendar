@@ -45,17 +45,25 @@ docker-init:
 
 # Start PostgreSQL (production mode)
 docker-start: docker-init
-	@if [ -z "$$POSTGRES_USER" ] || [ -z "$$POSTGRES_PASSWORD" ] || [ -z "$$POSTGRES_DB" ] || [ -z "$$POSTGRES_PORT" ]; then \
-		echo "❌ Error: Required environment variables not set"; \
-		echo "   Please set: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT"; \
-		echo "   Create .env file from .env.example or export variables"; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found"; \
+		echo "   Run 'make docker-init' to create it from .env.example"; \
 		exit 1; \
 	fi
-	@echo "🚀 Starting PostgreSQL with Ethiopian Calendar extension..."
-	@docker compose --profile default up -d postgres || (echo "❌ Failed to start container" && docker compose logs postgres --tail 20 && exit 1)
-	@echo "⏳ Waiting for PostgreSQL to be ready..."
-	@sleep 3
-	@for i in $$(seq 1 60); do \
+	@ENV_FILE="$$(pwd)/.env" && \
+	set -a && . "$$ENV_FILE" && set +a && \
+	if [ -z "$$POSTGRES_USER" ] || [ -z "$$POSTGRES_PASSWORD" ] || [ -z "$$POSTGRES_DB" ] || [ -z "$$POSTGRES_PORT" ]; then \
+		echo "❌ Error: Required environment variables not set in .env file"; \
+		echo "   Please set: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT"; \
+		echo "   Edit .env file and set all required values"; \
+		exit 1; \
+	fi && \
+	set -a && . "$$ENV_FILE" && set +a && \
+	echo "🚀 Starting PostgreSQL with Ethiopian Calendar extension..." && \
+	docker compose --profile default up -d postgres || (echo "❌ Failed to start container" && docker compose logs postgres --tail 20 && exit 1) && \
+	echo "⏳ Waiting for PostgreSQL to be ready..." && \
+	sleep 3 && \
+	for i in $$(seq 1 60); do \
 		if docker compose exec -T postgres pg_isready -U $$POSTGRES_USER > /dev/null 2>&1; then \
 			break; \
 		fi; \
@@ -73,29 +81,36 @@ docker-start: docker-init
 		fi; \
 		echo -n "."; \
 		sleep 1; \
-	done
-	@echo ""
-	@echo "✅ PostgreSQL is ready!"
-	@echo ""
-	@echo "Connection: postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB"
-	@echo "Test: docker compose exec postgres psql -U $$POSTGRES_USER -c \"SELECT to_ethiopian_date('2024-01-01'::timestamp);\""
+	done && \
+	echo "" && \
+	echo "✅ PostgreSQL is ready!" && \
+	echo "" && \
+	echo "Connection: postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB" && \
+	echo "Test: docker compose exec postgres psql -U $$POSTGRES_USER -c \"SELECT to_ethiopian_date('2024-01-01'::timestamp);\""
 
 # Start PostgreSQL (development mode)
 docker-dev: docker-init
-	@if [ -z "$$POSTGRES_USER" ] || [ -z "$$POSTGRES_PASSWORD" ] || [ -z "$$POSTGRES_DB" ] || [ -z "$$POSTGRES_PORT" ]; then \
-		echo "❌ Error: Required environment variables not set"; \
-		echo "   Please set: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT"; \
-		echo "   Create .env file from .env.example or export variables"; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found"; \
+		echo "   Run 'make docker-init' to create it from .env.example"; \
 		exit 1; \
 	fi
-	@echo "🔧 Starting PostgreSQL in DEVELOPMENT mode..."
-	@docker compose --profile dev up -d postgres-dev
-	@echo "⏳ Waiting for PostgreSQL to be ready..."
-	@timeout 30 bash -c 'until docker compose exec -T postgres-dev pg_isready -U $$POSTGRES_USER > /dev/null 2>&1; do sleep 1; done' || (echo "❌ PostgreSQL failed to start" && exit 1)
-	@echo "✅ PostgreSQL (dev) is ready!"
-	@echo ""
-	@echo "Source code is mounted - restart container to rebuild after changes"
-	@echo "Connection: postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB"
+	@ENV_FILE="$$(pwd)/.env" && \
+	set -a && . "$$ENV_FILE" && set +a && \
+	if [ -z "$$POSTGRES_USER" ] || [ -z "$$POSTGRES_PASSWORD" ] || [ -z "$$POSTGRES_DB" ] || [ -z "$$POSTGRES_PORT" ]; then \
+		echo "❌ Error: Required environment variables not set in .env file"; \
+		echo "   Please set: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, POSTGRES_PORT"; \
+		echo "   Edit .env file and set all required values"; \
+		exit 1; \
+	fi && \
+	echo "🔧 Starting PostgreSQL in DEVELOPMENT mode..." && \
+	docker compose --profile dev up -d postgres-dev && \
+	echo "⏳ Waiting for PostgreSQL to be ready..." && \
+	timeout 30 bash -c "ENV_FILE=\"$$(pwd)/.env\" && set -a && . \"$$ENV_FILE\" && set +a && until docker compose exec -T postgres-dev pg_isready -U $$POSTGRES_USER > /dev/null 2>&1; do sleep 1; done" || (echo "❌ PostgreSQL failed to start" && exit 1) && \
+	echo "✅ PostgreSQL (dev) is ready!" && \
+	echo "" && \
+	echo "Source code is mounted - restart container to rebuild after changes" && \
+	echo "Connection: postgresql://$$POSTGRES_USER:$$POSTGRES_PASSWORD@localhost:$$POSTGRES_PORT/$$POSTGRES_DB"
 
 # Stop PostgreSQL
 docker-stop:
@@ -119,25 +134,34 @@ docker-rebuild:
 
 # Run tests
 docker-test:
-	@if [ -z "$$TEST_POSTGRES_USER" ] || [ -z "$$TEST_POSTGRES_PASSWORD" ] || [ -z "$$TEST_POSTGRES_DB" ] || [ -z "$$TEST_POSTGRES_PORT" ] || [ -z "$$PG_VERSION" ]; then \
-		echo "❌ Error: Required test environment variables not set"; \
-		echo "   Please set: TEST_POSTGRES_USER, TEST_POSTGRES_PASSWORD, TEST_POSTGRES_DB, TEST_POSTGRES_PORT, PG_VERSION"; \
-		echo "   Create .env file from .env.example"; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found"; \
+		echo "   Run 'make docker-init' to create it from .env.example"; \
 		exit 1; \
 	fi
-	@echo "🧪 Running tests..."
-	@docker compose --profile test up --build --abort-on-container-exit test
-	@TEST_EXIT=$$?; \
-	docker compose --profile test down -v 2>/dev/null || true; \
+	@ENV_FILE="$$(pwd)/.env" && \
+	set -a && . "$$ENV_FILE" && set +a && \
+	if [ -z "$$TEST_POSTGRES_USER" ] || [ -z "$$TEST_POSTGRES_PASSWORD" ] || [ -z "$$TEST_POSTGRES_DB" ] || [ -z "$$TEST_POSTGRES_PORT" ] || [ -z "$$PG_VERSION" ]; then \
+		echo "❌ Error: Required test environment variables not set in .env file"; \
+		echo "   Please set: TEST_POSTGRES_USER, TEST_POSTGRES_PASSWORD, TEST_POSTGRES_DB, TEST_POSTGRES_PORT, PG_VERSION"; \
+		echo "   Edit .env file and set all required values"; \
+		exit 1; \
+	fi && \
+	echo "🧪 Running tests..." && \
+	docker compose --profile test up --build --abort-on-container-exit test && \
+	TEST_EXIT=$$? && \
+	docker compose --profile test down -v 2>/dev/null || true && \
 	exit $$TEST_EXIT
 
 # Connect to PostgreSQL with psql
 docker-psql:
-	@if [ -z "$$POSTGRES_USER" ]; then \
-		echo "❌ Error: POSTGRES_USER not set"; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found"; \
 		exit 1; \
 	fi
-	@if docker compose ps postgres-dev 2>/dev/null | grep -q "Up"; then \
+	@ENV_FILE="$$(pwd)/.env" && \
+	set -a && . "$$ENV_FILE" && set +a && \
+	if docker compose ps postgres-dev 2>/dev/null | grep -q "Up"; then \
 		docker compose exec postgres-dev psql -U $$POSTGRES_USER; \
 	elif docker compose ps postgres 2>/dev/null | grep -q "Up"; then \
 		docker compose exec postgres psql -U $$POSTGRES_USER; \
@@ -148,11 +172,13 @@ docker-psql:
 
 # Open psql shell (alias for docker-psql)
 docker-shell:
-	@if [ -z "$$POSTGRES_USER" ]; then \
-		echo "❌ Error: POSTGRES_USER not set"; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found"; \
 		exit 1; \
 	fi
-	@if docker compose ps postgres-dev 2>/dev/null | grep -q "Up"; then \
+	@ENV_FILE="$$(pwd)/.env" && \
+	set -a && . "$$ENV_FILE" && set +a && \
+	if docker compose ps postgres-dev 2>/dev/null | grep -q "Up"; then \
 		docker compose exec postgres-dev psql -U $$POSTGRES_USER; \
 	elif docker compose ps postgres 2>/dev/null | grep -q "Up"; then \
 		docker compose exec postgres psql -U $$POSTGRES_USER; \
@@ -174,15 +200,17 @@ docker-logs:
 
 # Show status
 docker-status:
-	@if [ -z "$$POSTGRES_USER" ]; then \
-		echo "❌ Error: POSTGRES_USER not set"; \
+	@if [ ! -f .env ]; then \
+		echo "❌ Error: .env file not found"; \
 		exit 1; \
 	fi
-	@echo "📊 Container Status:"
-	@docker compose ps
-	@echo ""
-	@echo "📦 Extension Status:"
-	@if docker compose ps postgres 2>/dev/null | grep -q "Up"; then \
+	@ENV_FILE="$$(pwd)/.env" && \
+	set -a && . "$$ENV_FILE" && set +a && \
+	echo "📊 Container Status:" && \
+	docker compose ps && \
+	echo "" && \
+	echo "📦 Extension Status:" && \
+	if docker compose ps postgres 2>/dev/null | grep -q "Up"; then \
 		docker compose exec -T postgres psql -U $$POSTGRES_USER -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'pg_ethiopian_calendar';" 2>/dev/null || echo "⚠ Could not query extension status"; \
 	elif docker compose ps postgres-dev 2>/dev/null | grep -q "Up"; then \
 		docker compose exec -T postgres-dev psql -U $$POSTGRES_USER -c "SELECT extname, extversion FROM pg_extension WHERE extname = 'pg_ethiopian_calendar';" 2>/dev/null || echo "⚠ Could not query extension status"; \
