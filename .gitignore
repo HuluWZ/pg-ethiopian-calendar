@@ -1,0 +1,43 @@
+# Compiled objects
+*.o
+*.so
+*.a
+
+# Build artifacts
+*.control.bak
+*.sql.bak
+
+# PostgreSQL extension build files
+META.json
+Makefile.bak
+
+# Test artifacts
+test/pgdata/
+test/*.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+pgdata/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Docker Compose overrides (may contain local customizations)
+docker-compose.override.yml
+
+# Temporary files
+*.tmp
+*.bak
+

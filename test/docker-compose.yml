@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  pg:
+    build:
+      context: ..
+      dockerfile: test/Dockerfile
+    container_name: ethiopian_calendar_test
+    environment:
+      POSTGRES_USER: testuser
+      POSTGRES_PASSWORD: testpass
+      POSTGRES_DB: testdb
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U testuser"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+    # Command is handled in Dockerfile
+
+volumes:
+  pgdata:
+

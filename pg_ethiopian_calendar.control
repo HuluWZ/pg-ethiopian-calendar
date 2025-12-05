@@ -1,0 +1,12 @@
+# PostgreSQL extension control file
+# Follows PostgreSQL extension standards
+# See: https://www.postgresql.org/docs/current/extend-extensions.html
+
+# Extension name (must match directory and file names)
+# Standard: lowercase with underscores, using pg_ prefix for extension name
+comment = 'Convert between Gregorian and Ethiopian calendar dates'
+default_version = '1.0'
+module_pathname = '$libdir/ethiopian_calendar'
+relocatable = true
+# requires = ''  # List other required extensions if any
+

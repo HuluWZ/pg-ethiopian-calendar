@@ -1,0 +1,87 @@
+services:
+  # Production-ready PostgreSQL with extension pre-built
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        PG_VERSION: ${PG_VERSION:-14}
+    container_name: ethiopian_calendar_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    command: postgres -c log_statement=all -c log_destination=stderr
+    profiles:
+      - production
+      - default
+
+  # Development mode - mounts source code, rebuilds on start
+  postgres-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        PG_VERSION: ${PG_VERSION:-14}
+    container_name: ethiopian_calendar_postgres_dev
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+      # Mount source code for live development
+      - ./Makefile:/usr/src/extension/Makefile:ro
+      - ./pg_ethiopian_calendar.control:/usr/src/extension/pg_ethiopian_calendar.control:ro
+      - ./sql:/usr/src/extension/sql:ro
+      - ./src:/usr/src/extension/src:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    profiles:
+      - dev
+
+  # Test service - runs tests and exits
+  test:
+    build:
+      context: .
+      dockerfile: test/Dockerfile
+      args:
+        PG_VERSION: ${PG_VERSION:-14}
+    container_name: ethiopian_calendar_test
+    environment:
+      POSTGRES_USER: ${TEST_POSTGRES_USER:-testuser}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:-testpass}
+      POSTGRES_DB: ${TEST_POSTGRES_DB:-testdb}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "${TEST_POSTGRES_PORT:-5433}:5432"
+    volumes:
+      - test_data:/var/lib/postgresql/data
+    profiles:
+      - test
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_data_dev:
+    driver: local
+  test_data:
+    driver: local

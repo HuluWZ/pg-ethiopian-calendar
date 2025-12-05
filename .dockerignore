@@ -1,0 +1,54 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Documentation (not needed in Docker image)
+README.md
+CONTRIBUTING.md
+*.md
+
+# Test files (not needed in main Docker image)
+test/
+
+# Build artifacts
+*.o
+*.so
+*.a
+META.json
+Makefile.bak
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker files (don't copy into Docker)
+docker-compose.yml
+docker-compose.override.yml
+Dockerfile
+Dockerfile.dev
+.dockerignore
+
+# Environment files (may contain secrets)
+.env
+.env.local
+.env.*.local
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# Docker volumes
+pgdata/
+postgres_data/
+postgres_data_dev/
+test_data/
+
