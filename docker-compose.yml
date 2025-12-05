@@ -5,19 +5,19 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        PG_VERSION: ${PG_VERSION:-14}
+        PG_VERSION: ${PG_VERSION}
     container_name: ethiopian_calendar_postgres
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 2s
       timeout: 5s
       retries: 10
@@ -33,15 +33,15 @@ services:
       context: .
       dockerfile: Dockerfile.dev
       args:
-        PG_VERSION: ${PG_VERSION:-14}
+        PG_VERSION: ${PG_VERSION}
     container_name: ethiopian_calendar_postgres_dev
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      - "${POSTGRES_PORT}:5432"
     volumes:
       - postgres_data_dev:/var/lib/postgresql/data
       # Mount source code for live development
@@ -50,7 +50,7 @@ services:
       - ./sql:/usr/src/extension/sql:ro
       - ./src:/usr/src/extension/src:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 2s
       timeout: 5s
       retries: 10
@@ -64,15 +64,15 @@ services:
       context: .
       dockerfile: test/Dockerfile
       args:
-        PG_VERSION: ${PG_VERSION:-14}
+        PG_VERSION: ${PG_VERSION}
     container_name: ethiopian_calendar_test
     environment:
-      POSTGRES_USER: ${TEST_POSTGRES_USER:-testuser}
-      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD:-testpass}
-      POSTGRES_DB: ${TEST_POSTGRES_DB:-testdb}
+      POSTGRES_USER: ${TEST_POSTGRES_USER}
+      POSTGRES_PASSWORD: ${TEST_POSTGRES_PASSWORD}
+      POSTGRES_DB: ${TEST_POSTGRES_DB}
       POSTGRES_HOST_AUTH_METHOD: trust
     ports:
-      - "${TEST_POSTGRES_PORT:-5433}:5432"
+      - "${TEST_POSTGRES_PORT}:5432"
     volumes:
       - test_data:/var/lib/postgresql/data
     profiles:

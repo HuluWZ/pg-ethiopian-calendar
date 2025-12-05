@@ -4,10 +4,15 @@
 
 set -e
 
-# Configuration
-PGUSER="${POSTGRES_USER:-testuser}"
-PGPASSWORD="${POSTGRES_PASSWORD:-testpass}"
-PGDB="${POSTGRES_DB:-testdb}"
+# Configuration - environment variables are required
+if [ -z "$POSTGRES_USER" ] || [ -z "$POSTGRES_PASSWORD" ] || [ -z "$POSTGRES_DB" ]; then
+    echo "Error: Required environment variables not set: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB"
+    exit 1
+fi
+
+PGUSER="${POSTGRES_USER}"
+PGPASSWORD="${POSTGRES_PASSWORD}"
+PGDB="${POSTGRES_DB}"
 PGHOST="${POSTGRES_HOST:-localhost}"
 PGPORT="${POSTGRES_PORT:-5432}"
 

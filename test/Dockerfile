@@ -61,9 +61,8 @@ RUN chmod +x /usr/src/extension/test/pgtest.sh
 
 # Set environment variables
 ENV PGDATA=/var/lib/postgresql/data
-ENV POSTGRES_USER=testuser
-ENV POSTGRES_PASSWORD=testpass
-ENV POSTGRES_DB=testdb
+# PostgreSQL environment variables must be provided via docker-compose or .env file
+# Required: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 
 # Default command: start postgres and run tests
 CMD ["bash", "-c", "docker-entrypoint.sh postgres & sleep 5 && /usr/src/extension/test/pgtest.sh"]

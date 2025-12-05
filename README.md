@@ -89,39 +89,43 @@ docker compose exec postgres psql -U postgres -c "CREATE EXTENSION IF NOT EXISTS
 
 ### Configuration with .env File
 
-The Docker setup uses environment variables for configuration. You can customize settings by creating a `.env` file:
+**The `.env` file is REQUIRED.** The Docker setup uses environment variables for configuration. You must create a `.env` file:
 
 ```bash
-# Create .env from the example template
+# Create .env from the example template (REQUIRED)
 cp .env.example .env
 
-# Edit .env to customize your settings
+# Edit .env and set your required values
 nano .env  # or use your preferred editor
 ```
 
-The `.env` file allows you to configure:
+**Important:** All environment variables must be set. The `make docker-init` command will automatically create `.env` from `.env.example` if it doesn't exist, but you should review and customize the values.
 
-- **PostgreSQL credentials**: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`
-- **Port mapping**: `POSTGRES_PORT` (default: 5432)
-- **Test database settings**: `TEST_POSTGRES_*` variables
+The `.env` file is **required** and must contain:
+
+- **PostgreSQL credentials**: `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` (required)
+- **Port mapping**: `POSTGRES_PORT` (required)
+- **PostgreSQL version**: `PG_VERSION` (required, e.g., 14, 15, 16)
+- **Test database settings**: `TEST_POSTGRES_*` variables (required for testing)
 
 **Example `.env` file:**
 
 ```bash
-# PostgreSQL Configuration
+# PostgreSQL Configuration (REQUIRED)
 POSTGRES_USER=myuser
 POSTGRES_PASSWORD=mysecurepassword
 POSTGRES_DB=myapp
 POSTGRES_PORT=5432
+PG_VERSION=14
 
-# Test Database Configuration
+# Test Database Configuration (REQUIRED for testing)
 TEST_POSTGRES_USER=testuser
 TEST_POSTGRES_PASSWORD=testpass
 TEST_POSTGRES_DB=testdb
 TEST_POSTGRES_PORT=5433
 ```
 
-**Note:** The `.env` file is automatically ignored by git (in `.gitignore`) to keep your credentials secure. If you don't create a `.env` file, the system will use default values or create one from `.env.example` automatically.
+**Note:** The `.env` file is automatically ignored by git (in `.gitignore`) to keep your credentials secure. You must create a `.env` file from `.env.example` before running any docker commands.
 
 ## Installation (Manual)
 

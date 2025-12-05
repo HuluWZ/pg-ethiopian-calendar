@@ -73,12 +73,13 @@ cp .env.example .env
 # Edit .env with your settings
 ```
 
-The `.env` file supports:
-- `POSTGRES_USER` - PostgreSQL username (default: postgres)
-- `POSTGRES_PASSWORD` - PostgreSQL password (default: postgres)
-- `POSTGRES_DB` - Database name (default: postgres)
-- `POSTGRES_PORT` - Host port mapping (default: 5432)
-- `TEST_POSTGRES_*` - Test database settings
+The `.env` file is **required** and must contain:
+- `POSTGRES_USER` - PostgreSQL username (required)
+- `POSTGRES_PASSWORD` - PostgreSQL password (required)
+- `POSTGRES_DB` - Database name (required)
+- `POSTGRES_PORT` - Host port mapping (required)
+- `PG_VERSION` - PostgreSQL version, e.g., 14, 15, 16 (required)
+- `TEST_POSTGRES_*` - Test database settings (required for testing)
 
 ### Docker Compose Override
 

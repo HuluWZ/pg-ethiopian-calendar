@@ -27,10 +27,8 @@ RUN PG_MAJOR=$(cat /tmp/pg_major_version) && \
 # Set working directory
 WORKDIR /usr/src/extension
 
-# Default PostgreSQL environment variables
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=postgres
-ENV POSTGRES_DB=postgres
+# PostgreSQL environment variables must be provided via docker-compose or .env file
+# Required: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 
 # Expose PostgreSQL port
 EXPOSE 5432

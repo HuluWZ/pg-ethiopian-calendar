@@ -59,10 +59,8 @@ RUN --mount=from=builder,source=/usr/lib/postgresql,target=/mnt/lib,ro \
 
 # Note: Extension must be created manually with: CREATE EXTENSION pg_ethiopian_calendar;
 
-# Default PostgreSQL environment variables (can be overridden)
-ENV POSTGRES_USER=postgres
-ENV POSTGRES_PASSWORD=postgres
-ENV POSTGRES_DB=postgres
+# PostgreSQL environment variables must be provided via docker-compose or .env file
+# Required: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 
 # Expose PostgreSQL port
 EXPOSE 5432
