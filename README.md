@@ -414,7 +414,7 @@ postgres-ethiopian-calendar-extension/
 
 ## References
 
-- Dershowitz, Nachum & Reingold, Edward M. (2008). *Calendrical Calculations* (3rd ed.). Cambridge University Press. [ISBN: 978-0-521-88540-9](https://www.cambridge.org/us/academic/subjects/computer-science/computing-general-interest/calendrical-calculations-ultimate-edition-3rd-edition)
+- Dershowitz, Nachum & Reingold, Edward M. (2008). *Calendrical Calculations* (3rd ed.). Cambridge University Press. [ISBN: 978-0-521-88540-9](https://www.cambridge.org/core/books/calendrical-calculations/B897CA3260110348F1F7D906B8D9480D)
 - PostgreSQL Extension Building: https://www.postgresql.org/docs/current/extend-pgxs.html
 
 ## License
