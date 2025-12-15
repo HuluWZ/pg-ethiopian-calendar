@@ -213,11 +213,56 @@ SELECT to_ethiopian_datetime('2024-01-01 14:30:00'::timestamp);
 SELECT pg_ethiopian_to_datetime('2024-01-01 14:30:00'::timestamp);
 ```
 
+#### `to_ethiopian_timestamp(timestamp) → timestamp` / `pg_ethiopian_to_timestamp(timestamp) → timestamp`
+
+Converts a Gregorian timestamp to an Ethiopian calendar TIMESTAMP (without time zone). The date is converted to Ethiopian calendar; the time-of-day remains the same. **This function is ideal for use in generated columns** where you want a `TIMESTAMP` type (not `TEXT`).
+
+**Parameters:**
+- `timestamp`: A Gregorian calendar timestamp
+
+**Returns:**
+- `timestamp`: A timestamp (without time zone) with the date in Ethiopian calendar and the original time preserved
+
+**Examples:**
+```sql
+-- Using original name
+SELECT to_ethiopian_timestamp('2024-01-01 14:30:00'::timestamp);
+
+-- Using pg_ prefixed alias
+SELECT pg_ethiopian_to_timestamp('2024-01-01 14:30:00'::timestamp);
+
+-- In generated columns
+CREATE TABLE orders (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT NOW(),
+    created_at_ethiopian TIMESTAMP GENERATED ALWAYS AS (to_ethiopian_timestamp(created_at)) STORED
+);
+```
+
+#### `current_ethiopian_date() → text`
+
+Returns the current date in Ethiopian calendar as text. This function is `STABLE` (not `IMMUTABLE`) because it depends on the current time. Useful for `DEFAULT` values.
+
+**Returns:**
+- `text`: Current Ethiopian calendar date as string in format "YYYY-MM-DD"
+
+**Examples:**
+```sql
+-- Get current Ethiopian date
+SELECT current_ethiopian_date();
+
+-- Use as default value
+CREATE TABLE events (
+    id SERIAL PRIMARY KEY,
+    event_date_ethiopian TEXT DEFAULT current_ethiopian_date()
+);
+```
+
 ### Function Naming
 
 The extension provides both naming styles:
-- **Original names**: `to_ethiopian_date()`, `from_ethiopian_date()`, `to_ethiopian_datetime()`
-- **pg_ prefixed aliases**: `pg_ethiopian_to_date()`, `pg_ethiopian_from_date()`, `pg_ethiopian_to_datetime()`
+- **Original names**: `to_ethiopian_date()`, `from_ethiopian_date()`, `to_ethiopian_datetime()`, `to_ethiopian_timestamp()`, `current_ethiopian_date()`
+- **pg_ prefixed aliases**: `pg_ethiopian_to_date()`, `pg_ethiopian_from_date()`, `pg_ethiopian_to_datetime()`, `pg_ethiopian_to_timestamp()`
 
 Both styles are equivalent and call the same underlying C functions. Use whichever style you prefer. The `pg_` prefixed versions follow PostgreSQL extension naming conventions (similar to `pg_stat_statements`, `pg_trgm`).
 
@@ -247,8 +292,23 @@ SELECT from_ethiopian_date(to_ethiopian_date('2024-01-01'::timestamp));
 
 ### Generated Columns
 
-You can use these functions in generated columns to automatically maintain Ethiopian calendar dates:
+You can use these functions in generated columns to automatically maintain Ethiopian calendar dates. You have two options:
 
+**Option 1: Using TIMESTAMP type (Recommended for timestamps)**
+```sql
+CREATE TABLE sample (
+    id SERIAL PRIMARY KEY,
+    created_at TIMESTAMP DEFAULT NOW(),
+    created_at_ethiopian TIMESTAMP GENERATED ALWAYS AS (to_ethiopian_timestamp(created_at)) STORED,
+    updated_at TIMESTAMP DEFAULT NOW(),
+    updated_at_ethiopian TIMESTAMP GENERATED ALWAYS AS (to_ethiopian_timestamp(updated_at)) STORED
+);
+
+INSERT INTO sample (created_at) VALUES (NOW());
+SELECT * FROM sample;
+```
+
+**Option 2: Using TEXT type (For date-only values)**
 ```sql
 CREATE TABLE sample (
     id SERIAL PRIMARY KEY,
@@ -258,6 +318,14 @@ CREATE TABLE sample (
 
 INSERT INTO sample (created_at) VALUES (NOW());
 SELECT * FROM sample;
+```
+
+**Option 3: Using DEFAULT with current_ethiopian_date()**
+```sql
+CREATE TABLE events (
+    id SERIAL PRIMARY KEY,
+    event_date_ethiopian TEXT DEFAULT current_ethiopian_date()
+);
 ```
 
 ### Querying with Ethiopian Dates
@@ -485,4 +553,26 @@ Or with docker compose directly:
 PG_VERSION=11 docker compose build postgres
 PG_VERSION=11 docker compose up -d postgres
 ```
+
+## Documentation
+
+### Quick References
+
+- **[API Reference](API.md)** - Complete API documentation with detailed function reference, usage patterns, and best practices
+- **[Quick Start Guide](QUICK_START.md)** - Step-by-step guide to get started quickly
+- **[Testing Guide](TESTING.md)** - Comprehensive testing documentation
+- **[Docker Guide](DOCKER.md)** - Docker setup and usage
+- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+
+### API Documentation
+
+For complete API documentation, see **[API.md](API.md)** which includes:
+
+- Detailed function reference with signatures, parameters, and return types
+- Function properties (volatility, strictness)
+- Comprehensive examples for each function
+- Usage patterns and best practices
+- Common use cases with real-world examples
+- Performance considerations and optimization tips
+- Error handling and migration guides
 
