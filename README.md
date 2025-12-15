@@ -392,7 +392,7 @@ docker compose exec -T postgres psql -U postgres -c \
    SELECT to_ethiopian_date('2024-01-01'::timestamp) AS ethiopian_date;"
 ```
 
-For detailed testing instructions, see **[TESTING.md](TESTING.md)**.
+For detailed testing, use `make docker-test`.
 
 ## Testing
 
@@ -457,16 +457,17 @@ psql -d your_database -f test/tests/ethiopian_calendar_tests.sql
 ## Project Structure
 
 ```
-postgres-ethiopian-calendar-extension/
+pg-ethiopian-calendar/
 ├── Makefile                    # Build configuration using PGXS
 ├── pg_ethiopian_calendar.control  # Extension metadata
+├── META.json                   # PGXN metadata
 ├── README.md                   # This file
-├── CONTRIBUTING.md             # Contribution guidelines
+├── LICENSE                     # PostgreSQL License
 ├── .gitignore                  # Git ignore patterns
 ├── .dockerignore               # Docker ignore patterns
 ├── .env.example                # Environment variables template
-├── Dockerfile                  # Production Docker image (multi-stage build)
-├── Dockerfile.dev              # Development Docker image (with build tools)
+├── Dockerfile                  # Production Docker image
+├── Dockerfile.dev              # Development Docker image
 ├── docker-compose.yml          # Docker Compose configuration
 ├── src/
 │   └── ethiopian_calendar.c   # C implementation
@@ -507,17 +508,13 @@ See `EXTENSION_STANDARDS.md` and `NAMING_CONVENTIONS.md` for detailed informatio
 
 Contributions, bug reports, and feature requests are welcome! 
 
-Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines on:
-- Development setup
-- Code style and conventions
-- Testing requirements
-- Pull request process
-
 Key points:
 - Maintain compatibility with PostgreSQL 11+
 - Follow the conversion formulas from "Calendrical Calculations"
 - Include tests for new features
 - Update documentation as needed
+
+Submit issues and pull requests at: https://github.com/HuluWZ/pg-ethiopian-calendar
 
 ## PostgreSQL Version Support
 
@@ -554,25 +551,7 @@ PG_VERSION=11 docker compose build postgres
 PG_VERSION=11 docker compose up -d postgres
 ```
 
-## Documentation
+## License
 
-### Quick References
-
-- **[API Reference](API.md)** - Complete API documentation with detailed function reference, usage patterns, and best practices
-- **[Quick Start Guide](QUICK_START.md)** - Step-by-step guide to get started quickly
-- **[Testing Guide](TESTING.md)** - Comprehensive testing documentation
-- **[Docker Guide](DOCKER.md)** - Docker setup and usage
-- **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
-
-### API Documentation
-
-For complete API documentation, see **[API.md](API.md)** which includes:
-
-- Detailed function reference with signatures, parameters, and return types
-- Function properties (volatility, strictness)
-- Comprehensive examples for each function
-- Usage patterns and best practices
-- Common use cases with real-world examples
-- Performance considerations and optimization tips
-- Error handling and migration guides
+This extension is released under the PostgreSQL License. See [LICENSE](LICENSE) for details.
 
