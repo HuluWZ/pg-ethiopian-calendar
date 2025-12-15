@@ -8,7 +8,6 @@
 *.sql.bak
 
 # PostgreSQL extension build files
-META.json
 Makefile.bak
 
 # Test artifacts

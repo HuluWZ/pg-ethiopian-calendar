@@ -1,0 +1,53 @@
+{
+   "name": "pg_ethiopian_calendar",
+   "abstract": "Convert between Gregorian and Ethiopian calendar dates",
+   "description": "A PostgreSQL extension that converts Gregorian timestamps to Ethiopian calendar dates using academically verified formulas from 'Calendrical Calculations' by Nachum Dershowitz & Edward M. Reingold (Cambridge University Press). The extension provides functions for bidirectional conversion between Gregorian and Ethiopian calendars, with support for generated columns, indexing, and time-preserving conversions.",
+   "version": "1.0.0",
+   "maintainer": [
+      "Hulunlante Worku <hulunlante.w@gmail.com>"
+   ],
+   "license": "postgresql",
+   "provides": {
+      "pg_ethiopian_calendar": {
+         "file": "sql/pg_ethiopian_calendar--1.0.sql",
+         "version": "1.0.0",
+         "docfile": "README.md"
+      }
+   },
+   "resources": {
+      "homepage": "https://github.com/HuluWZ/pg-ethiopian-calendar",
+      "repository": {
+         "url": "git://github.com/HuluWZ/pg-ethiopian-calendar.git",
+         "web": "https://github.com/HuluWZ/pg-ethiopian-calendar",
+         "type": "git"
+      },
+      "bugtracker": {
+         "web": "https://github.com/HuluWZ/pg-ethiopian-calendar/issues"
+      },
+      "x_github": "HuluWZ/pg-ethiopian-calendar"
+   },
+   "tags": [
+      "calendar",
+      "ethiopian",
+      "date",
+      "timestamp",
+      "conversion",
+      "gregorian",
+      "time",
+      "culture",
+      "localization"
+   ],
+   "meta-spec": {
+      "version": "1.0.0",
+      "url": "https://pgxn.org/meta/spec.txt"
+   },
+   "prereqs": {
+      "runtime": {
+         "requires": {
+            "PostgreSQL": "11.0.0"
+         }
+      }
+   },
+   "release_status": "stable",
+   "generated_by": "pgxn-tools"
+}
