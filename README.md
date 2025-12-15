@@ -1,6 +1,7 @@
 # pg_ethiopian_calendar
 
 [![PGXN version](https://badge.fury.io/pg/pg_ethiopian_calendar.svg)](https://pgxn.org/dist/pg_ethiopian_calendar/)
+[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://pgxn.org/dist/pg_ethiopian_calendar/)
 [![PostgreSQL 11+](https://img.shields.io/badge/PostgreSQL-11+-blue.svg)](https://www.postgresql.org/)
 [![License: PostgreSQL](https://img.shields.io/badge/License-PostgreSQL-blue.svg)](LICENSE)
 

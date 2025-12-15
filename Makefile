@@ -11,7 +11,9 @@ MODULES = ethiopian_calendar
 # Format: extension--version.sql (initial version)
 # Format: extension--from_version--to_version.sql (migrations)
 # Note: Migration files are only included when they're part of the default version path
-DATA = sql/pg_ethiopian_calendar--1.0.sql
+DATA = sql/pg_ethiopian_calendar--1.0.sql \
+       sql/pg_ethiopian_calendar--1.1.sql \
+       sql/pg_ethiopian_calendar--1.0--1.1.sql
 
 # Source files are in src/ directory
 VPATH = src
