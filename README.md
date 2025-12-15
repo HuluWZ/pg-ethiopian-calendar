@@ -12,6 +12,7 @@ A PostgreSQL extension for converting between Gregorian and Ethiopian calendar d
 The Ethiopian calendar (Ge'ez calendar) is a solar calendar with 13 months used in Ethiopia and Eritrea. This extension provides functions to convert dates between Gregorian and Ethiopian calendars using academically verified algorithms from "Calendrical Calculations" by Dershowitz & Reingold.
 
 **Key Features:**
+
 - Bidirectional conversion (Gregorian ↔ Ethiopian)
 - IMMUTABLE functions for use in indexes and generated columns
 - Time-preserving conversions
@@ -178,9 +179,9 @@ Released under the [PostgreSQL License](LICENSE).
 
 ## Links
 
-- **PGXN:** https://pgxn.org/dist/pg_ethiopian_calendar/
-- **GitHub:** https://github.com/HuluWZ/pg-ethiopian-calendar
-- **Issues:** https://github.com/HuluWZ/pg-ethiopian-calendar/issues
+- **PGXN:** <https://pgxn.org/dist/pg_ethiopian_calendar/>
+- **GitHub:** <https://github.com/HuluWZ/pg-ethiopian-calendar>
+- **Issues:** <https://github.com/HuluWZ/pg-ethiopian-calendar/issues>
 
 ## References
 
