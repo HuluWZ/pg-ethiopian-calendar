@@ -1,53 +1,64 @@
 # pg_ethiopian_calendar Docker Image
 # PostgreSQL with Ethiopian Calendar extension pre-installed
 #
-# Supports PostgreSQL 11, 12, 13, 14, 15, 16, 17
+# Supports PostgreSQL 14, 15, 16, 17
 #
 # Build for specific version:
-#   docker build -f Dockerfile.hub --build-arg PG_VERSION=11 -t pg-ethiopian-calendar:pg11 .
-#   docker build -f Dockerfile.hub --build-arg PG_VERSION=14 -t pg-ethiopian-calendar:pg14 .
-#   docker build -f Dockerfile.hub --build-arg PG_VERSION=16 -t pg-ethiopian-calendar:pg16 .
+#   docker build -f Dockerfile.hub --build-arg PG_VERSION=14 -t huluwz/pg-ethiopian-calendar:1.1.0-pg14 .
+#   docker build -f Dockerfile.hub --build-arg PG_VERSION=16 -t huluwz/pg-ethiopian-calendar:1.1.0-pg16 .
 #
 # Usage:
-#   docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres pg-ethiopian-calendar:pg14
+#   docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres huluwz/pg-ethiopian-calendar:1.1.0-pg14
 #
 # Then connect and use:
 #   psql -h localhost -U postgres -c "SELECT to_ethiopian_date(NOW());"
 
 ARG PG_VERSION=14
-FROM postgres:${PG_VERSION}
 
-LABEL maintainer="Hulunlante Worku <hulunlante.w@gmail.com>"
-LABEL description="PostgreSQL with pg_ethiopian_calendar extension (supports PG 11-17)"
-LABEL version="1.1.0"
-LABEL org.opencontainers.image.source="https://github.com/HuluWZ/pg-ethiopian-calendar"
-LABEL org.opencontainers.image.documentation="https://github.com/HuluWZ/pg-ethiopian-calendar#readme"
+#############################################
+# Stage 1: Build the extension
+#############################################
+FROM postgres:${PG_VERSION} AS builder
 
-# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
   build-essential \
   postgresql-server-dev-${PG_MAJOR} \
   && rm -rf /var/lib/apt/lists/*
 
-# Copy extension source
 COPY src/ /tmp/pg_ethiopian_calendar/src/
 COPY sql/ /tmp/pg_ethiopian_calendar/sql/
 COPY Makefile /tmp/pg_ethiopian_calendar/
 COPY pg_ethiopian_calendar.control /tmp/pg_ethiopian_calendar/
 
-# Build and install extension
 WORKDIR /tmp/pg_ethiopian_calendar
 RUN make && make install
 
-# Clean up build dependencies to reduce image size
-RUN apt-get purge -y --auto-remove \
-  build-essential \
-  postgresql-server-dev-${PG_MAJOR} \
-  && rm -rf /tmp/pg_ethiopian_calendar \
-  && rm -rf /var/lib/apt/lists/*
+#############################################
+# Stage 2: Create minimal runtime image
+#############################################
+FROM postgres:${PG_VERSION}
 
-# Add initialization script to auto-create extension
+# Metadata labels
+LABEL maintainer="Hulunlante Worku <hulunlante.w@gmail.com>"
+LABEL org.opencontainers.image.title="pg_ethiopian_calendar"
+LABEL org.opencontainers.image.description="PostgreSQL extension for Ethiopian (Ge'ez) calendar conversions. Convert dates between Gregorian and Ethiopian calendars seamlessly in SQL."
+LABEL org.opencontainers.image.version="1.1.0"
+LABEL org.opencontainers.image.source="https://github.com/HuluWZ/pg-ethiopian-calendar"
+LABEL org.opencontainers.image.documentation="https://github.com/HuluWZ/pg-ethiopian-calendar#readme"
+LABEL org.opencontainers.image.licenses="PostgreSQL"
+LABEL org.opencontainers.image.vendor="Hulunlante Worku"
+
+# Categories for Docker Hub
+LABEL org.opencontainers.image.base.name="postgres:${PG_VERSION}"
+LABEL io.artifacthub.package.category="database"
+LABEL io.artifacthub.package.keywords="postgresql,extension,ethiopian,calendar,geez,amharic,africa,date,conversion"
+
+# Copy only the built extension files from builder stage
+COPY --from=builder /usr/share/postgresql/${PG_MAJOR}/extension/pg_ethiopian_calendar* /usr/share/postgresql/${PG_MAJOR}/extension/
+COPY --from=builder /usr/lib/postgresql/${PG_MAJOR}/lib/ethiopian_calendar.so /usr/lib/postgresql/${PG_MAJOR}/lib/
+
+# Auto-create extension on database initialization
 RUN echo "CREATE EXTENSION IF NOT EXISTS pg_ethiopian_calendar;" > /docker-entrypoint-initdb.d/01-pg_ethiopian_calendar.sql
 
+# Default working directory
 WORKDIR /
-
