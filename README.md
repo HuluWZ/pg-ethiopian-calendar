@@ -1,7 +1,7 @@
 # pg_ethiopian_calendar
 
 [![PGXN version](https://badge.fury.io/pg/pg_ethiopian_calendar.svg)](https://pgxn.org/dist/pg_ethiopian_calendar/)
-[![Version](https://img.shields.io/badge/version-1.1.0-green.svg)](https://pgxn.org/dist/pg_ethiopian_calendar/)
+[![Docker Hub](https://img.shields.io/docker/v/huluwz/pg-ethiopian-calendar?label=Docker%20Hub&logo=docker)](https://hub.docker.com/r/huluwz/pg-ethiopian-calendar)
 [![PostgreSQL 11+](https://img.shields.io/badge/PostgreSQL-11+-blue.svg)](https://www.postgresql.org/)
 [![License: PostgreSQL](https://img.shields.io/badge/License-PostgreSQL-blue.svg)](LICENSE)
 
@@ -26,6 +26,30 @@ The Ethiopian calendar (Ge'ez calendar) is a solar calendar with 13 months used 
 pgxn install pg_ethiopian_calendar
 ```
 
+### From Docker Hub
+
+Pre-built PostgreSQL images with the extension installed:
+
+```bash
+# Pull the image (PostgreSQL 14, 15, 16, or 17)
+docker pull huluwz/pg-ethiopian-calendar:latest        # PostgreSQL 17
+docker pull huluwz/pg-ethiopian-calendar:1.1.0-pg16    # PostgreSQL 16
+docker pull huluwz/pg-ethiopian-calendar:1.1.0-pg15    # PostgreSQL 15
+docker pull huluwz/pg-ethiopian-calendar:1.1.0-pg14    # PostgreSQL 14
+
+# Run the container
+docker run -d \
+  --name ethiopian-calendar-db \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 \
+  huluwz/pg-ethiopian-calendar:latest
+
+# Connect and enable the extension
+psql -h localhost -U postgres -c "CREATE EXTENSION pg_ethiopian_calendar;"
+```
+
+**Docker Hub:** <https://hub.docker.com/r/huluwz/pg-ethiopian-calendar>
+
 ### From Source
 
 ```bash
@@ -35,7 +59,7 @@ make
 sudo make install
 ```
 
-### Create Extension
+### Enable Extension
 
 ```sql
 CREATE EXTENSION pg_ethiopian_calendar;
