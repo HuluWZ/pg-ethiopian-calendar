@@ -357,10 +357,11 @@ to_ethiopian_datetime(PG_FUNCTION_ARGS)
     /* Convert JDN to Ethiopian calendar */
     jdn_to_ethiopian(jdn, &eth_year, &eth_month, &eth_day);
     
-    /* Convert Ethiopian date back to Gregorian DATE (for PostgreSQL storage) */
-    jdn = ethiopian_to_jdn(eth_year, eth_month, eth_day);
-    jdn_to_gregorian(jdn, &greg_year, &greg_month, &greg_day);
-    eth_date = gregorian_to_dateadt(greg_year, greg_month, greg_day);
+    /* 
+     * Create a timestamp using Ethiopian date components as-if they were Gregorian.
+     * This allows the timestamp to display Ethiopian year/month/day values.
+     */
+    eth_date = gregorian_to_dateadt(eth_year, eth_month, eth_day);
     
     /* Combine Ethiopian date with original time */
     result_timestamp = (eth_date * USECS_PER_DAY) + time_offset;
@@ -547,10 +548,11 @@ to_ethiopian_timestamp(PG_FUNCTION_ARGS)
     /* Convert JDN to Ethiopian calendar */
     jdn_to_ethiopian(jdn, &eth_year, &eth_month, &eth_day);
     
-    /* Convert Ethiopian date back to Gregorian DATE (for PostgreSQL storage) */
-    jdn = ethiopian_to_jdn(eth_year, eth_month, eth_day);
-    jdn_to_gregorian(jdn, &greg_year, &greg_month, &greg_day);
-    eth_date = gregorian_to_dateadt(greg_year, greg_month, greg_day);
+    /* 
+     * Create a timestamp using Ethiopian date components as-if they were Gregorian.
+     * This allows the timestamp to display Ethiopian year/month/day values.
+     */
+    eth_date = gregorian_to_dateadt(eth_year, eth_month, eth_day);
     
     /* Combine Ethiopian date with original time */
     result_timestamp = (eth_date * USECS_PER_DAY) + time_offset;
