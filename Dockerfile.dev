@@ -1,28 +1,12 @@
 # Development Dockerfile - includes build tools for live development
-# Supports PostgreSQL 11+
+# Supports PostgreSQL 14+ (Alpine-based)
 # Use this when you want to mount source code and rebuild on the fly
 
-ARG PG_VERSION=14
-FROM postgres:${PG_VERSION}
-
-# Get PostgreSQL major version
-RUN PG_MAJOR=$(pg_config --version | sed -E 's/PostgreSQL ([0-9]+)\..*/\1/') && \
-    echo "Building for PostgreSQL ${PG_MAJOR}" && \
-    echo ${PG_MAJOR} > /tmp/pg_major_version
+ARG PG_VERSION=16
+FROM postgres:${PG_VERSION}-alpine
 
 # Install build dependencies
-RUN PG_MAJOR=$(cat /tmp/pg_major_version) && \
-    apt-get update && \
-    apt-get install -y \
-        build-essential \
-        postgresql-server-dev-${PG_MAJOR} \
-        make \
-        gcc \
-        libc6-dev \
-        && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    rm /tmp/pg_major_version
+RUN apk add --no-cache build-base bash
 
 # Set working directory
 WORKDIR /usr/src/extension
@@ -30,23 +14,22 @@ WORKDIR /usr/src/extension
 # PostgreSQL environment variables must be provided via docker-compose or .env file
 # Required: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 
-# Expose PostgreSQL port
 EXPOSE 5432
 
 # Create a script that builds and installs the extension
-RUN echo '#!/bin/bash\n\
-set -e\n\
-cd /usr/src/extension\n\
-if [ -f Makefile ]; then\n\
-    echo "Building extension..."\n\
-    make clean || true\n\
-    make\n\
-    make install\n\
-    echo "Extension built and installed successfully!"\n\
-else\n\
-    echo "Warning: Makefile not found. Source code should be mounted at /usr/src/extension"\n\
-fi\n\
-exec docker-entrypoint.sh postgres "$@"' > /usr/local/bin/build-and-run.sh && \
+RUN echo '#!/bin/bash' > /usr/local/bin/build-and-run.sh && \
+    echo 'set -e' >> /usr/local/bin/build-and-run.sh && \
+    echo 'cd /usr/src/extension' >> /usr/local/bin/build-and-run.sh && \
+    echo 'if [ -f Makefile ]; then' >> /usr/local/bin/build-and-run.sh && \
+    echo '    echo "Building extension..."' >> /usr/local/bin/build-and-run.sh && \
+    echo '    make clean 2>/dev/null || true' >> /usr/local/bin/build-and-run.sh && \
+    echo '    make USE_PGXS=1 with_llvm=no' >> /usr/local/bin/build-and-run.sh && \
+    echo '    make USE_PGXS=1 with_llvm=no install' >> /usr/local/bin/build-and-run.sh && \
+    echo '    echo "Extension built and installed successfully!"' >> /usr/local/bin/build-and-run.sh && \
+    echo 'else' >> /usr/local/bin/build-and-run.sh && \
+    echo '    echo "Warning: Makefile not found. Source code should be mounted at /usr/src/extension"' >> /usr/local/bin/build-and-run.sh && \
+    echo 'fi' >> /usr/local/bin/build-and-run.sh && \
+    echo 'exec docker-entrypoint.sh postgres "$@"' >> /usr/local/bin/build-and-run.sh && \
     chmod +x /usr/local/bin/build-and-run.sh
 
 # Override entrypoint to build extension before starting PostgreSQL
