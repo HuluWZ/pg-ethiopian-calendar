@@ -1,7 +1,7 @@
-# pg_ethiopian_calendar Docker Image
+# pg_ethiopian_calendar Docker Image (Alpine - Optimized)
 # PostgreSQL with Ethiopian Calendar extension pre-installed
 #
-# Supports PostgreSQL 14, 15, 16, 17
+# Supports PostgreSQL 14, 15, 16, 17 (Alpine-based for minimal size)
 #
 # Build for specific version:
 #   docker build -f Dockerfile.hub --build-arg PG_VERSION=14 -t huluwz/pg-ethiopian-calendar:1.1.0-pg14 .
@@ -13,30 +13,31 @@
 # Then connect and use:
 #   psql -h localhost -U postgres -c "SELECT to_ethiopian_date(NOW());"
 
-ARG PG_VERSION=14
+ARG PG_VERSION=16
 
 #############################################
 # Stage 1: Build the extension
 #############################################
-FROM postgres:${PG_VERSION} AS builder
+FROM postgres:${PG_VERSION}-alpine AS builder
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  build-essential \
-  postgresql-server-dev-${PG_MAJOR} \
-  && rm -rf /var/lib/apt/lists/*
+# Install build dependencies (minimal for C extension)
+RUN apk add --no-cache build-base
 
+# Copy source files
 COPY src/ /tmp/pg_ethiopian_calendar/src/
 COPY sql/ /tmp/pg_ethiopian_calendar/sql/
 COPY Makefile /tmp/pg_ethiopian_calendar/
 COPY pg_ethiopian_calendar.control /tmp/pg_ethiopian_calendar/
 
 WORKDIR /tmp/pg_ethiopian_calendar
-RUN make && make install
+
+# Build without LLVM/JIT support (not needed for this extension)
+RUN make USE_PGXS=1 with_llvm=no && make USE_PGXS=1 with_llvm=no install
 
 #############################################
 # Stage 2: Create minimal runtime image
 #############################################
-FROM postgres:${PG_VERSION}
+FROM postgres:${PG_VERSION}-alpine
 
 # Metadata labels
 LABEL maintainer="Hulunlante Worku <hulunlante.w@gmail.com>"
@@ -49,13 +50,12 @@ LABEL org.opencontainers.image.licenses="PostgreSQL"
 LABEL org.opencontainers.image.vendor="Hulunlante Worku"
 
 # Categories for Docker Hub
-LABEL org.opencontainers.image.base.name="postgres:${PG_VERSION}"
 LABEL io.artifacthub.package.category="database"
 LABEL io.artifacthub.package.keywords="postgresql,extension,ethiopian,calendar,geez,amharic,africa,date,conversion"
 
 # Copy only the built extension files from builder stage
-COPY --from=builder /usr/share/postgresql/${PG_MAJOR}/extension/pg_ethiopian_calendar* /usr/share/postgresql/${PG_MAJOR}/extension/
-COPY --from=builder /usr/lib/postgresql/${PG_MAJOR}/lib/ethiopian_calendar.so /usr/lib/postgresql/${PG_MAJOR}/lib/
+COPY --from=builder /usr/local/share/postgresql/extension/pg_ethiopian_calendar* /usr/local/share/postgresql/extension/
+COPY --from=builder /usr/local/lib/postgresql/ethiopian_calendar.so /usr/local/lib/postgresql/
 
 # Auto-create extension on database initialization
 RUN echo "CREATE EXTENSION IF NOT EXISTS pg_ethiopian_calendar;" > /docker-entrypoint-initdb.d/01-pg_ethiopian_calendar.sql
