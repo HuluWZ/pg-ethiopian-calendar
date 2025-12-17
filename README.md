@@ -46,6 +46,9 @@ docker run -d \
 
 # Connect and enable the extension
 psql -h localhost -U postgres -c "CREATE EXTENSION pg_ethiopian_calendar;"
+
+psql -h localhost -U postgres -c "SELECT to_ethiopian_date('2025-12-17');"
+
 ```
 
 **Docker Hub:** <https://hub.docker.com/r/huluwz/pg-ethiopian-calendar>
