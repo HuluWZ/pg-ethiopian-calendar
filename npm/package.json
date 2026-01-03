@@ -1,0 +1,45 @@
+{
+  "name": "@huluwz/pg-ethiopian-calendar",
+  "version": "1.1.0",
+  "description": "Ethiopian calendar functions for PostgreSQL - works with Prisma, Drizzle, TypeORM",
+  "author": "Hulunlante Worku <hulunlante.w@gmail.com>",
+  "license": "PostgreSQL",
+  "repository": "HuluWZ/pg-ethiopian-calendar",
+  "homepage": "https://github.com/HuluWZ/pg-ethiopian-calendar#readme",
+  "bugs": "https://github.com/HuluWZ/pg-ethiopian-calendar/issues",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "ethiopian-calendar": "dist/cli/init.js"
+  },
+  "files": [
+    "dist",
+    "sql",
+    "docs",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ethiopian-calendar",
+    "postgresql",
+    "postgres",
+    "prisma",
+    "drizzle",
+    "typeorm",
+    "calendar",
+    "ethiopia",
+    "geez",
+    "date-conversion",
+    "migration"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
+}
