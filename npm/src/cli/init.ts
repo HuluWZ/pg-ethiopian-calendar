@@ -1,433 +1,183 @@
 #!/usr/bin/env node
-
 /**
- * CLI for initializing Ethiopian calendar migrations
- *
- * Usage:
- *   npx @huluwz/pg-ethiopian-calendar init [orm]
- *   npx ethiopian-calendar init [orm]
- *
- * Examples:
- *   npx ethiopian-calendar init           # Auto-detect ORM
- *   npx ethiopian-calendar init prisma    # Use Prisma
- *   npx ethiopian-calendar init drizzle   # Use Drizzle
+ * CLI for Ethiopian Calendar PostgreSQL migrations
+ * @example npx ethiopian-calendar init prisma
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import {
-  getSql,
-  getSqlPath,
-  detectOrm,
-  getMigrationPath,
-  type SupportedORM,
-} from "../index";
+import { mkdirSync, existsSync, writeFileSync } from "fs";
+import { dirname } from "path";
+import { getSql, detectOrm, getMigrationPath, listMigrations, VERSION, type SupportedORM } from "../index";
 
-// ANSI color codes
-const colors = {
+const fmt = {
   reset: "\x1b[0m",
-  bright: "\x1b[1m",
+  bold: "\x1b[1m",
+  red: "\x1b[31m",
   green: "\x1b[32m",
   yellow: "\x1b[33m",
   blue: "\x1b[34m",
   cyan: "\x1b[36m",
-  red: "\x1b[31m",
+} as const;
+
+const log = console.log;
+const print = {
+  info: (msg: string) => log(`${fmt.blue}ℹ${fmt.reset} ${msg}`),
+  success: (msg: string) => log(`${fmt.green}✔${fmt.reset} ${msg}`),
+  error: (msg: string) => log(`${fmt.red}✖${fmt.reset} ${msg}`),
 };
 
-function log(message: string): void {
-  console.log(message);
-}
+const DROP_FUNCTIONS_SQL = `
+DROP FUNCTION IF EXISTS pg_ethiopian_to_datetime(timestamp);
+DROP FUNCTION IF EXISTS pg_ethiopian_to_timestamp(timestamp);
+DROP FUNCTION IF EXISTS pg_ethiopian_from_date(text);
+DROP FUNCTION IF EXISTS pg_ethiopian_to_date(timestamp);
+DROP FUNCTION IF EXISTS ethiopian_calendar_version();
+DROP FUNCTION IF EXISTS current_ethiopian_date();
+DROP FUNCTION IF EXISTS to_ethiopian_datetime(timestamp);
+DROP FUNCTION IF EXISTS to_ethiopian_timestamp();
+DROP FUNCTION IF EXISTS to_ethiopian_timestamp(timestamp);
+DROP FUNCTION IF EXISTS from_ethiopian_date(text);
+DROP FUNCTION IF EXISTS to_ethiopian_date();
+DROP FUNCTION IF EXISTS to_ethiopian_date(timestamp);
+DROP FUNCTION IF EXISTS _ethiopian_to_jdn(integer, integer, integer);
+DROP FUNCTION IF EXISTS _jdn_to_ethiopian(integer);
+DROP FUNCTION IF EXISTS _jdn_to_gregorian(integer);
+DROP FUNCTION IF EXISTS _gregorian_to_jdn(integer, integer, integer);
+`.trim();
 
-function success(message: string): void {
-  console.log(`${colors.green}✔${colors.reset} ${message}`);
-}
-
-function info(message: string): void {
-  console.log(`${colors.blue}ℹ${colors.reset} ${message}`);
-}
-
-function warn(message: string): void {
-  console.log(`${colors.yellow}⚠${colors.reset} ${message}`);
-}
-
-function error(message: string): void {
-  console.log(`${colors.red}✖${colors.reset} ${message}`);
-}
-
-function printBanner(): void {
-  log("");
-  log(
-    `${colors.cyan}${colors.bright}Ethiopian Calendar for PostgreSQL${colors.reset}`
-  );
-  log(`${colors.cyan}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${colors.reset}`);
-  log("");
-}
-
-function printUsage(): void {
-  log(`${colors.bright}Usage:${colors.reset}`);
-  log("  npx ethiopian-calendar init [orm]");
-  log("");
-  log(`${colors.bright}Supported ORMs:${colors.reset}`);
-  log("  prisma, drizzle, typeorm, sequelize, knex, kysely, mikro-orm, raw");
-  log("");
-  log(`${colors.bright}Examples:${colors.reset}`);
-  log("  npx ethiopian-calendar init           # Auto-detect ORM");
-  log("  npx ethiopian-calendar init prisma    # Use Prisma");
-  log("  npx ethiopian-calendar init drizzle   # Use Drizzle");
-  log("");
-}
-
-function ensureDirectoryExists(filePath: string): void {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-function generatePrismaMigration(outputPath: string): void {
-  const sql = getSql();
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, sql);
-}
-
-function generateDrizzleMigration(outputPath: string): void {
-  const sql = getSql();
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, sql);
-}
-
-function generateTypeORMMigration(outputPath: string): void {
-  const sql = getSql();
+function generateTypeOrmMigration(sql: string): string {
   const className = `EthiopianCalendar${Date.now()}`;
-
-  const content = `import { MigrationInterface, QueryRunner } from "typeorm";
+  return `import { MigrationInterface, QueryRunner } from "typeorm";
 
 export class ${className} implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<void> {
-    await queryRunner.query(\`
-${sql.replace(/`/g, "\\`")}
-    \`);
+  async up(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(\`${sql.replace(/`/g, "\\`")}\`);
   }
 
-  public async down(queryRunner: QueryRunner): Promise<void> {
-    // Drop functions in reverse order
-    await queryRunner.query(\`
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_datetime(timestamp);
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_timestamp(timestamp);
-      DROP FUNCTION IF EXISTS pg_ethiopian_from_date(text);
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_date(timestamp);
-      DROP FUNCTION IF EXISTS current_ethiopian_date();
-      DROP FUNCTION IF EXISTS to_ethiopian_datetime(timestamp);
-      DROP FUNCTION IF EXISTS to_ethiopian_timestamp(timestamp);
-      DROP FUNCTION IF EXISTS from_ethiopian_date(text);
-      DROP FUNCTION IF EXISTS to_ethiopian_date(timestamp);
-      DROP FUNCTION IF EXISTS _ethiopian_to_jdn(integer, integer, integer);
-      DROP FUNCTION IF EXISTS _jdn_to_ethiopian(integer);
-      DROP FUNCTION IF EXISTS _jdn_to_gregorian(integer);
-      DROP FUNCTION IF EXISTS _gregorian_to_jdn(integer, integer, integer);
-    \`);
+  async down(queryRunner: QueryRunner): Promise<void> {
+    await queryRunner.query(\`${DROP_FUNCTIONS_SQL}\`);
   }
 }
 `;
-
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, content);
 }
 
-function generateSequelizeMigration(outputPath: string): void {
-  const sql = getSql();
-
-  const content = `'use strict';
-
-/** @type {import('sequelize-cli').Migration} */
-module.exports = {
-  async up(queryInterface, Sequelize) {
-    await queryInterface.sequelize.query(\`
-${sql.replace(/`/g, "\\`")}
-    \`);
-  },
-
-  async down(queryInterface, Sequelize) {
-    await queryInterface.sequelize.query(\`
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_datetime(timestamp);
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_timestamp(timestamp);
-      DROP FUNCTION IF EXISTS pg_ethiopian_from_date(text);
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_date(timestamp);
-      DROP FUNCTION IF EXISTS current_ethiopian_date();
-      DROP FUNCTION IF EXISTS to_ethiopian_datetime(timestamp);
-      DROP FUNCTION IF EXISTS to_ethiopian_timestamp(timestamp);
-      DROP FUNCTION IF EXISTS from_ethiopian_date(text);
-      DROP FUNCTION IF EXISTS to_ethiopian_date(timestamp);
-      DROP FUNCTION IF EXISTS _ethiopian_to_jdn(integer, integer, integer);
-      DROP FUNCTION IF EXISTS _jdn_to_ethiopian(integer);
-      DROP FUNCTION IF EXISTS _jdn_to_gregorian(integer);
-      DROP FUNCTION IF EXISTS _gregorian_to_jdn(integer, integer, integer);
-    \`);
+function writeMigration(orm: SupportedORM, outputPath: string): void {
+  const dir = dirname(outputPath);
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
   }
-};
-`;
 
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, content);
+  const sql = getSql();
+  const content = orm === "typeorm" ? generateTypeOrmMigration(sql) : sql;
+  writeFileSync(outputPath, content);
 }
 
-function generateKnexMigration(outputPath: string): void {
-  const sql = getSql();
+const VALID_ORMS: SupportedORM[] = ["prisma", "drizzle", "typeorm", "raw"];
 
-  const content = `/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
-exports.up = function(knex) {
-  return knex.raw(\`
-${sql.replace(/`/g, "\\`")}
-  \`);
+const NEXT_STEPS: Record<SupportedORM, string[]> = {
+  prisma: ["npx prisma migrate dev"],
+  drizzle: ["npx drizzle-kit migrate"],
+  typeorm: ["npx typeorm migration:run -d src/data-source.ts"],
+  raw: ["psql -d DATABASE -f ethiopian_calendar.sql"],
 };
 
-/**
- * @param { import("knex").Knex } knex
- * @returns { Promise<void> }
- */
-exports.down = function(knex) {
-  return knex.raw(\`
-    DROP FUNCTION IF EXISTS pg_ethiopian_to_datetime(timestamp);
-    DROP FUNCTION IF EXISTS pg_ethiopian_to_timestamp(timestamp);
-    DROP FUNCTION IF EXISTS pg_ethiopian_from_date(text);
-    DROP FUNCTION IF EXISTS pg_ethiopian_to_date(timestamp);
-    DROP FUNCTION IF EXISTS current_ethiopian_date();
-    DROP FUNCTION IF EXISTS to_ethiopian_datetime(timestamp);
-    DROP FUNCTION IF EXISTS to_ethiopian_timestamp(timestamp);
-    DROP FUNCTION IF EXISTS from_ethiopian_date(text);
-    DROP FUNCTION IF EXISTS to_ethiopian_date(timestamp);
-    DROP FUNCTION IF EXISTS _ethiopian_to_jdn(integer, integer, integer);
-    DROP FUNCTION IF EXISTS _jdn_to_ethiopian(integer);
-    DROP FUNCTION IF EXISTS _jdn_to_gregorian(integer);
-    DROP FUNCTION IF EXISTS _gregorian_to_jdn(integer, integer, integer);
-  \`);
-};
-`;
+function showHelp(): void {
+  log(`
+${fmt.cyan}${fmt.bold}Ethiopian Calendar for PostgreSQL${fmt.reset} ${fmt.yellow}v${VERSION}${fmt.reset}
 
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, content);
+${fmt.bold}Usage:${fmt.reset}
+  npx ethiopian-calendar init [orm]
+  npx ethiopian-calendar version
+  npx ethiopian-calendar migrations
+
+${fmt.bold}ORMs:${fmt.reset}
+  prisma, drizzle, typeorm, raw
+
+${fmt.bold}Examples:${fmt.reset}
+  npx ethiopian-calendar init          ${fmt.cyan}# auto-detect${fmt.reset}
+  npx ethiopian-calendar init prisma
+`);
 }
 
-function generateKyselyMigration(outputPath: string): void {
-  const sql = getSql();
-
-  const content = `import { Kysely, sql } from 'kysely';
-
-export async function up(db: Kysely<any>): Promise<void> {
-  await sql.raw(\`
-${sql.replace(/`/g, "\\`")}
-  \`).execute(db);
+function showVersion(): void {
+  log(`${fmt.bold}v${VERSION}${fmt.reset}`);
+  log(`\nCheck database: ${fmt.cyan}SELECT ethiopian_calendar_version();${fmt.reset}\n`);
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
-  await sql.raw(\`
-    DROP FUNCTION IF EXISTS pg_ethiopian_to_datetime(timestamp);
-    DROP FUNCTION IF EXISTS pg_ethiopian_to_timestamp(timestamp);
-    DROP FUNCTION IF EXISTS pg_ethiopian_from_date(text);
-    DROP FUNCTION IF EXISTS pg_ethiopian_to_date(timestamp);
-    DROP FUNCTION IF EXISTS current_ethiopian_date();
-    DROP FUNCTION IF EXISTS to_ethiopian_datetime(timestamp);
-    DROP FUNCTION IF EXISTS to_ethiopian_timestamp(timestamp);
-    DROP FUNCTION IF EXISTS from_ethiopian_date(text);
-    DROP FUNCTION IF EXISTS to_ethiopian_date(timestamp);
-    DROP FUNCTION IF EXISTS _ethiopian_to_jdn(integer, integer, integer);
-    DROP FUNCTION IF EXISTS _jdn_to_ethiopian(integer);
-    DROP FUNCTION IF EXISTS _jdn_to_gregorian(integer);
-    DROP FUNCTION IF EXISTS _gregorian_to_jdn(integer, integer, integer);
-  \`).execute(db);
-}
-`;
-
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, content);
-}
-
-function generateMikroORMMigration(outputPath: string): void {
-  const sql = getSql();
-  const className = `EthiopianCalendar${Date.now()}`;
-
-  const content = `import { Migration } from '@mikro-orm/migrations';
-
-export class ${className} extends Migration {
-  async up(): Promise<void> {
-    this.addSql(\`
-${sql.replace(/`/g, "\\`")}
-    \`);
-  }
-
-  async down(): Promise<void> {
-    this.addSql(\`
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_datetime(timestamp);
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_timestamp(timestamp);
-      DROP FUNCTION IF EXISTS pg_ethiopian_from_date(text);
-      DROP FUNCTION IF EXISTS pg_ethiopian_to_date(timestamp);
-      DROP FUNCTION IF EXISTS current_ethiopian_date();
-      DROP FUNCTION IF EXISTS to_ethiopian_datetime(timestamp);
-      DROP FUNCTION IF EXISTS to_ethiopian_timestamp(timestamp);
-      DROP FUNCTION IF EXISTS from_ethiopian_date(text);
-      DROP FUNCTION IF EXISTS to_ethiopian_date(timestamp);
-      DROP FUNCTION IF EXISTS _ethiopian_to_jdn(integer, integer, integer);
-      DROP FUNCTION IF EXISTS _jdn_to_ethiopian(integer);
-      DROP FUNCTION IF EXISTS _jdn_to_gregorian(integer);
-      DROP FUNCTION IF EXISTS _gregorian_to_jdn(integer, integer, integer);
-    \`);
-  }
-}
-`;
-
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, content);
-}
-
-function generateRawMigration(outputPath: string): void {
-  const sql = getSql();
-  ensureDirectoryExists(outputPath);
-  fs.writeFileSync(outputPath, sql);
-}
-
-function generateMigration(orm: SupportedORM, outputPath: string): void {
-  switch (orm) {
-    case "prisma":
-      generatePrismaMigration(outputPath);
-      break;
-    case "drizzle":
-      generateDrizzleMigration(outputPath);
-      break;
-    case "typeorm":
-      generateTypeORMMigration(outputPath);
-      break;
-    case "sequelize":
-      generateSequelizeMigration(outputPath);
-      break;
-    case "knex":
-      generateKnexMigration(outputPath);
-      break;
-    case "kysely":
-      generateKyselyMigration(outputPath);
-      break;
-    case "mikro-orm":
-      generateMikroORMMigration(outputPath);
-      break;
-    case "raw":
-    default:
-      generateRawMigration(outputPath);
-  }
-}
-
-function getNextSteps(orm: SupportedORM): string[] {
-  switch (orm) {
-    case "prisma":
-      return [
-        "Run: npx prisma migrate dev --name ethiopian_calendar",
-        "Or if migration already created: npx prisma migrate deploy",
-      ];
-    case "drizzle":
-      return [
-        "Run: npx drizzle-kit migrate",
-        "Or: npx drizzle-kit push",
-      ];
-    case "typeorm":
-      return [
-        "Run: npx typeorm migration:run",
-      ];
-    case "sequelize":
-      return [
-        "Run: npx sequelize-cli db:migrate",
-      ];
-    case "knex":
-      return [
-        "Run: npx knex migrate:latest",
-      ];
-    case "kysely":
-      return [
-        "Run your Kysely migration runner",
-      ];
-    case "mikro-orm":
-      return [
-        "Run: npx mikro-orm migration:up",
-      ];
-    case "raw":
-    default:
-      return [
-        "Run: psql -d your_database -f ethiopian_calendar.sql",
-        "Or use your preferred PostgreSQL client",
-      ];
-  }
-}
-
-async function main(): Promise<void> {
-  const args = process.argv.slice(2);
-  const command = args[0];
-
-  printBanner();
-
-  if (command === "help" || command === "--help" || command === "-h") {
-    printUsage();
-    process.exit(0);
-  }
-
-  if (command !== "init" && command !== undefined) {
-    error(`Unknown command: ${command}`);
-    log("");
-    printUsage();
-    process.exit(1);
-  }
-
-  // Get ORM from argument or auto-detect
-  let orm: SupportedORM | null = args[1] as SupportedORM | undefined ?? null;
-
-  if (!orm) {
-    info("Auto-detecting ORM...");
-    orm = detectOrm();
-
-    if (!orm) {
-      warn("Could not detect ORM. Using raw SQL output.");
-      orm = "raw";
-    } else {
-      success(`Detected: ${orm}`);
-    }
+function showMigrations(): void {
+  const migrations = listMigrations();
+  log(`\n${fmt.bold}Available Upgrades:${fmt.reset}`);
+  if (migrations.length === 0) {
+    log("  None\n");
   } else {
-    info(`Using specified ORM: ${orm}`);
+    migrations.forEach((m) => log(`  ${m.from} → ${m.to}`));
+    log("");
+  }
+}
+
+function initMigration(ormArg?: string): void {
+  let orm: SupportedORM;
+
+  if (ormArg) {
+    if (!VALID_ORMS.includes(ormArg as SupportedORM)) {
+      print.error(`Unknown ORM: ${ormArg}`);
+      log(`\nSupported: ${VALID_ORMS.join(", ")}\n`);
+      process.exit(1);
+    }
+    orm = ormArg as SupportedORM;
+    print.info(`Using: ${orm}`);
+  } else {
+    print.info("Detecting ORM...");
+    const detected = detectOrm();
+    if (!detected) {
+      print.error("No ORM detected");
+      log(`\nSpecify one: npx ethiopian-calendar init <${VALID_ORMS.join("|")}>\n`);
+      process.exit(1);
+    }
+    orm = detected;
+    print.success(`Detected: ${orm}`);
   }
 
-  // Generate migration
   const outputPath = getMigrationPath(orm);
-  info(`Generating migration at: ${outputPath}`);
 
   try {
-    generateMigration(orm, outputPath);
-    success(`Created: ${outputPath}`);
+    writeMigration(orm, outputPath);
+    print.success(`Created: ${outputPath}`);
   } catch (err) {
-    error(`Failed to create migration: ${err}`);
+    print.error(`Failed: ${err instanceof Error ? err.message : err}`);
     process.exit(1);
   }
 
-  // Print next steps
-  log("");
-  log(`${colors.bright}Next steps:${colors.reset}`);
-  const steps = getNextSteps(orm);
-  steps.forEach((step, index) => {
-    log(`  ${index + 1}. ${step}`);
-  });
-
-  log("");
-  log(`${colors.bright}Available functions:${colors.reset}`);
-  log("  • to_ethiopian_date(timestamp) → text");
-  log("  • from_ethiopian_date(text) → timestamp");
-  log("  • to_ethiopian_timestamp(timestamp) → timestamp");
-  log("  • current_ethiopian_date() → text");
-  log("");
-  log(
-    `${colors.cyan}Documentation: https://github.com/HuluWZ/pg-ethiopian-calendar${colors.reset}`
-  );
-  log("");
+  log(`\n${fmt.bold}Next:${fmt.reset} ${NEXT_STEPS[orm][0]}`);
+  log(`\n${fmt.bold}Functions:${fmt.reset}`);
+  log(`  to_ethiopian_date()          → text       ${fmt.cyan}# current date${fmt.reset}`);
+  log(`  to_ethiopian_date(timestamp) → text`);
+  log(`  from_ethiopian_date(text)    → timestamp`);
+  log(`  to_ethiopian_timestamp()     → timestamp  ${fmt.cyan}# current timestamp${fmt.reset}`);
+  log(`  to_ethiopian_timestamp(ts)   → timestamp\n`);
 }
 
-main().catch((err) => {
-  error(`Unexpected error: ${err}`);
-  process.exit(1);
-});
+const [cmd, arg] = process.argv.slice(2);
 
+switch (cmd) {
+  case undefined:
+  case "help":
+  case "--help":
+  case "-h":
+    showHelp();
+    break;
+  case "version":
+  case "--version":
+  case "-v":
+    showVersion();
+    break;
+  case "migrations":
+    showMigrations();
+    break;
+  case "init":
+    initMigration(arg);
+    break;
+  default:
+    print.error(`Unknown command: ${cmd}`);
+    showHelp();
+    process.exit(1);
+}

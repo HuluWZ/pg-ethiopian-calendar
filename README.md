@@ -38,7 +38,7 @@ npx ethiopian-calendar init
 npx prisma migrate dev
 ```
 
-Supports: **Prisma**, **Drizzle**, **TypeORM**, **Sequelize**, **Knex**, **Kysely**, **MikroORM**, and raw SQL.
+Supports: **Prisma**, **Drizzle**, **TypeORM**, and raw SQL.
 
 📖 [Full NPM Package Documentation](./npm/README.md)
 
@@ -95,20 +95,29 @@ sudo make install
 ## Quick Start
 
 ```sql
--- Convert Gregorian to Ethiopian
+-- Get current Ethiopian date
+SELECT to_ethiopian_date();
+-- Returns: '2018-04-23' (current date)
+
+-- Convert specific date
 SELECT to_ethiopian_date('2024-01-01'::timestamp);
 -- Returns: '2016-04-23'
 
 -- Convert Ethiopian to Gregorian  
 SELECT from_ethiopian_date('2016-04-23');
 -- Returns: '2024-01-01 00:00:00'
-
--- Get current Ethiopian date
-SELECT current_ethiopian_date();
--- Returns: Current date in Ethiopian calendar
 ```
 
 ## Functions
+
+### to_ethiopian_date() → text
+
+Returns the current date in Ethiopian calendar.
+
+```sql
+SELECT to_ethiopian_date();
+-- '2018-04-23'
+```
 
 ### to_ethiopian_date(timestamp) → text
 
@@ -128,12 +137,22 @@ SELECT from_ethiopian_date('2016-04-23');
 -- '2024-01-01 00:00:00'
 ```
 
+### to_ethiopian_timestamp() → timestamp
+
+Returns the current timestamp in Ethiopian calendar.
+
+```sql
+SELECT to_ethiopian_timestamp();
+-- '2018-04-23 14:30:00'
+```
+
 ### to_ethiopian_timestamp(timestamp) → timestamp
 
 Converts Gregorian timestamp to Ethiopian timestamp (preserves time). Ideal for generated columns.
 
 ```sql
 SELECT to_ethiopian_timestamp('2024-01-01 14:30:00'::timestamp);
+-- '2016-04-23 14:30:00'
 ```
 
 ### to_ethiopian_datetime(timestamp) → timestamptz
@@ -142,14 +161,6 @@ Converts Gregorian timestamp to Ethiopian timestamp with time zone.
 
 ```sql
 SELECT to_ethiopian_datetime('2024-01-01 14:30:00'::timestamp);
-```
-
-### current_ethiopian_date() → text
-
-Returns current date in Ethiopian calendar. (STABLE, not IMMUTABLE)
-
-```sql
-SELECT current_ethiopian_date();
 ```
 
 ## Function Aliases
@@ -246,7 +257,7 @@ export const orders = pgTable('orders', {
 ## Compatibility
 
 - PostgreSQL 11, 12, 13, 14, 15, 16, 17
-- All major ORMs (Prisma, Drizzle, TypeORM, Sequelize, Knex, etc.)
+- Prisma, Drizzle, TypeORM (more ORMs coming soon)
 - All PostgreSQL hosting providers (Neon, Supabase, Railway, AWS RDS, etc.)
 
 ## Testing

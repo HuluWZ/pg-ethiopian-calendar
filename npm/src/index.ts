@@ -1,151 +1,104 @@
-/**
- * @huluwz/pg-ethiopian-calendar
- *
- * Ethiopian calendar functions for PostgreSQL.
- * Works with Prisma, Drizzle, TypeORM, Sequelize, and any ORM.
- *
- * @author Hulunlante Worku <hulunlante.w@gmail.com>
- * @license PostgreSQL
- */
+import { readFileSync, existsSync, readdirSync } from "fs";
+import { join, dirname } from "path";
 
-import * as fs from "fs";
-import * as path from "path";
+export const VERSION = "1.1.0";
 
-export type SupportedORM =
-  | "prisma"
-  | "drizzle"
-  | "typeorm"
-  | "sequelize"
-  | "knex"
-  | "kysely"
-  | "mikro-orm"
-  | "raw";
+export type SupportedORM = "prisma" | "drizzle" | "typeorm" | "raw";
 
-/**
- * Get the path to the SQL migration file
- * @returns Absolute path to the SQL file
- */
-export function getSqlPath(): string {
-  return path.join(__dirname, "..", "sql", "ethiopian_calendar.sql");
-}
+const ORM_PACKAGES: Record<Exclude<SupportedORM, "raw">, string> = {
+  prisma: "@prisma/client",
+  drizzle: "drizzle-orm",
+  typeorm: "typeorm",
+};
 
-/**
- * Get the SQL content as a string
- * @returns The SQL migration content
- */
+const SQL_DIR = join(dirname(__dirname), "sql");
+const DOCS_DIR = join(dirname(__dirname), "docs");
+
+/** Returns the full SQL migration content */
 export function getSql(): string {
-  return fs.readFileSync(getSqlPath(), "utf8");
+  return readFileSync(join(SQL_DIR, "ethiopian_calendar.sql"), "utf8");
 }
 
-/**
- * Get the path to the documentation for a specific ORM
- * @param orm - The ORM name
- * @returns Absolute path to the documentation file
- */
+/** Returns path to the SQL migration file */
+export function getSqlPath(): string {
+  return join(SQL_DIR, "ethiopian_calendar.sql");
+}
+
+/** Returns path to ORM-specific documentation */
 export function getDocsPath(orm: SupportedORM): string {
-  return path.join(__dirname, "..", "docs", `${orm.toLowerCase()}.md`);
+  return join(DOCS_DIR, `${orm}.md`);
 }
 
-/**
- * Check if a specific ORM is installed in the project
- * @param orm - The ORM name to check
- * @returns True if the ORM is installed
- */
-export function isOrmInstalled(orm: SupportedORM): boolean {
-  const ormPackages: Record<SupportedORM, string> = {
-    prisma: "@prisma/client",
-    drizzle: "drizzle-orm",
-    typeorm: "typeorm",
-    sequelize: "sequelize",
-    knex: "knex",
-    kysely: "kysely",
-    "mikro-orm": "@mikro-orm/core",
-    raw: "pg",
-  };
-
+/** Checks if an ORM package is installed */
+export function isOrmInstalled(orm: Exclude<SupportedORM, "raw">): boolean {
   try {
-    require.resolve(ormPackages[orm]);
+    require.resolve(ORM_PACKAGES[orm]);
     return true;
   } catch {
     return false;
   }
 }
 
-/**
- * Detect which ORM is being used in the current project
- * @returns The detected ORM or null if none found
- */
-export function detectOrm(): SupportedORM | null {
-  const ormsToCheck: SupportedORM[] = [
-    "prisma",
-    "drizzle",
-    "typeorm",
-    "sequelize",
-    "knex",
-    "kysely",
-    "mikro-orm",
-    "raw",
-  ];
-
-  for (const orm of ormsToCheck) {
-    if (isOrmInstalled(orm)) {
-      return orm;
-    }
-  }
-
-  return null;
+/** Auto-detects installed ORM, returns null if none found */
+export function detectOrm(): Exclude<SupportedORM, "raw"> | null {
+  const orms = Object.keys(ORM_PACKAGES) as Exclude<SupportedORM, "raw">[];
+  return orms.find(isOrmInstalled) ?? null;
 }
 
-/**
- * Get migration output path for a specific ORM
- * @param orm - The ORM name
- * @param migrationName - Optional custom migration name
- * @returns Suggested migration file path
- */
-export function getMigrationPath(
-  orm: SupportedORM,
-  migrationName: string = "ethiopian_calendar"
-): string {
-  const timestamp = new Date()
-    .toISOString()
-    .replace(/[-:T]/g, "")
-    .slice(0, 14);
-
-  switch (orm) {
-    case "prisma":
-      return path.join(
-        "prisma",
-        "migrations",
-        `${timestamp}_${migrationName}`,
-        "migration.sql"
-      );
-    case "drizzle":
-      return path.join("drizzle", `${timestamp}_${migrationName}.sql`);
-    case "typeorm":
-      return path.join(
-        "src",
-        "migrations",
-        `${timestamp}-${migrationName}.ts`
-      );
-    case "sequelize":
-      return path.join("migrations", `${timestamp}-${migrationName}.js`);
-    case "knex":
-      return path.join("migrations", `${timestamp}_${migrationName}.js`);
-    case "kysely":
-      return path.join("migrations", `${timestamp}_${migrationName}.ts`);
-    case "mikro-orm":
-      return path.join(
-        "src",
-        "migrations",
-        `Migration${timestamp}_${migrationName}.ts`
-      );
-    case "raw":
-    default:
-      return `${migrationName}.sql`;
-  }
+/** Generates timestamp for migration filenames */
+function timestamp(): string {
+  return new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
 }
 
-// Export paths directly for convenience
-export const sqlPath = path.join(__dirname, "..", "sql", "ethiopian_calendar.sql");
-export const docsDir = path.join(__dirname, "..", "docs");
+/** Returns the migration output path for the specified ORM */
+export function getMigrationPath(orm: SupportedORM, name = "ethiopian_calendar"): string {
+  const ts = timestamp();
+  const paths: Record<SupportedORM, string> = {
+    prisma: join("prisma", "migrations", `${ts}_${name}`, "migration.sql"),
+    drizzle: join("drizzle", `${ts}_${name}.sql`),
+    typeorm: join("src", "migrations", `${ts}-${name}.ts`),
+    raw: `${name}.sql`,
+  };
+  return paths[orm];
+}
 
+/** Returns path to version upgrade migration, or null if not found */
+export function getUpgradePath(from: string, to: string): string | null {
+  const file = join(SQL_DIR, "migrations", `${from}_to_${to}.sql`);
+  return existsSync(file) ? file : null;
+}
+
+/** Returns upgrade migration SQL content, or null if not found */
+export function getUpgradeSql(from: string, to: string): string | null {
+  const file = getUpgradePath(from, to);
+  return file ? readFileSync(file, "utf8") : null;
+}
+
+export interface Migration {
+  from: string;
+  to: string;
+  path: string;
+}
+
+/** Lists all available upgrade migrations */
+export function listMigrations(): Migration[] {
+  const dir = join(SQL_DIR, "migrations");
+  if (!existsSync(dir)) return [];
+
+  const pattern = /^(\d+\.\d+\.\d+)_to_(\d+\.\d+\.\d+)\.sql$/;
+
+  return readdirSync(dir)
+    .map((file) => {
+      const match = file.match(pattern);
+      return match ? { from: match[1], to: match[2], path: join(dir, file) } : null;
+    })
+    .filter((m): m is Migration => m !== null);
+}
+
+/** SQL query to check installed version in database */
+export function getVersionCheckSql(): string {
+  return `SELECT COALESCE(
+    (SELECT proname FROM pg_proc WHERE proname = 'ethiopian_calendar_version' LIMIT 1),
+    NULL
+  )::text AS installed, '${VERSION}' AS latest;`;
+}

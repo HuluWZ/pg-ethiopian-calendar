@@ -1,150 +1,105 @@
 # @huluwz/pg-ethiopian-calendar
 
-[![npm version](https://badge.fury.io/js/@huluwz%2Fpg-ethiopian-calendar.svg)](https://www.npmjs.com/package/@huluwz/pg-ethiopian-calendar)
-[![PostgreSQL 11+](https://img.shields.io/badge/PostgreSQL-11+-blue.svg)](https://www.postgresql.org/)
-[![License: PostgreSQL](https://img.shields.io/badge/License-PostgreSQL-blue.svg)](LICENSE)
+Ethiopian calendar functions for PostgreSQL. Works on any PostgreSQL including managed services (Neon, Supabase, Railway, AWS RDS).
 
-Ethiopian calendar functions for PostgreSQL. **Works with any ORM** - Prisma, Drizzle, TypeORM, Sequelize, Knex, and more.
+[![npm](https://img.shields.io/npm/v/@huluwz/pg-ethiopian-calendar)](https://www.npmjs.com/package/@huluwz/pg-ethiopian-calendar)
+[![License](https://img.shields.io/badge/license-PostgreSQL-blue)](LICENSE)
 
-**No Docker required. No C extension. Just SQL.**
+## Install
 
-## Features
-
-- ✅ Works on **any PostgreSQL** (Neon, Supabase, Railway, AWS RDS, local)
-- ✅ Compatible with **all ORMs** (Prisma, Drizzle, TypeORM, etc.)
-- ✅ **Generated columns** support
-- ✅ **Functional indexes** support
-- ✅ **IMMUTABLE** functions for optimal performance
-- ✅ One-command setup with CLI
+```bash
+npm install @huluwz/pg-ethiopian-calendar
+```
 
 ## Quick Start
 
 ```bash
-# Install
-npm install @huluwz/pg-ethiopian-calendar
-
-# Initialize (auto-detects your ORM)
+# Generate migration (auto-detects ORM)
 npx ethiopian-calendar init
 
-# Apply migration (example for Prisma)
-npx prisma migrate dev
+# Or specify ORM
+npx ethiopian-calendar init prisma
+npx ethiopian-calendar init drizzle
+npx ethiopian-calendar init typeorm
 ```
 
-That's it! Ethiopian calendar functions are now available in your database.
+Then run your ORM's migration command.
 
-## Usage
-
-### SQL Functions
+## SQL Functions
 
 ```sql
--- Convert Gregorian to Ethiopian
-SELECT to_ethiopian_date('2026-01-01'::timestamp);
--- Returns: '2018-04-23'
+-- Current Ethiopian date (two ways)
+SELECT to_ethiopian_date();                         -- '2018-04-23'
+SELECT to_ethiopian_date(NOW());                    -- same
 
--- Convert Ethiopian to Gregorian
-SELECT from_ethiopian_date('2018-04-23');
--- Returns: '2026-01-01 00:00:00'
+-- Specific date
+SELECT to_ethiopian_date('2024-01-01'::timestamp);  -- '2016-04-23'
 
--- Get current Ethiopian date
-SELECT current_ethiopian_date();
--- Returns: Today's date in Ethiopian calendar
+-- Ethiopian → Gregorian
+SELECT from_ethiopian_date('2016-04-23');           -- '2024-01-01 00:00:00'
+
+-- Current Ethiopian timestamp (with time)
+SELECT to_ethiopian_timestamp();                    -- '2018-04-23 14:30:00'
+
+-- Check version
+SELECT ethiopian_calendar_version();                -- '1.1.0'
 ```
 
-### Generated Columns
+## Generated Columns
 
 ```sql
 CREATE TABLE orders (
-    id SERIAL PRIMARY KEY,
-    created_at TIMESTAMP DEFAULT NOW(),
-    created_at_ethiopian TIMESTAMP GENERATED ALWAYS AS 
-        (to_ethiopian_timestamp(created_at)) STORED
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMP DEFAULT NOW(),
+  created_at_ethiopian TIMESTAMP GENERATED ALWAYS AS 
+    (to_ethiopian_timestamp(created_at)) STORED
 );
 ```
 
-### With Prisma
+## With Prisma
 
 ```typescript
-// Ethiopian date is automatically populated!
 const order = await prisma.order.create({
-  data: { customerName: 'Abebe' }
-})
-console.log(order.createdAtEthiopian) // Ethiopian timestamp
+  data: { name: 'Test' }
+});
+console.log(order.createdAtEthiopian); // auto-populated
 ```
 
-### With Drizzle
+## With Drizzle
 
 ```typescript
-import { sql } from 'drizzle-orm'
+import { sql } from 'drizzle-orm';
 
 export const orders = pgTable('orders', {
   id: serial('id').primaryKey(),
   createdAt: timestamp('created_at').defaultNow(),
   createdAtEthiopian: timestamp('created_at_ethiopian')
     .generatedAlwaysAs(sql`to_ethiopian_timestamp(created_at)`),
-})
+});
 ```
 
-## CLI Commands
-
-```bash
-# Auto-detect ORM and generate migration
-npx ethiopian-calendar init
-
-# Specify ORM explicitly
-npx ethiopian-calendar init prisma
-npx ethiopian-calendar init drizzle
-npx ethiopian-calendar init typeorm
-npx ethiopian-calendar init sequelize
-npx ethiopian-calendar init knex
-npx ethiopian-calendar init raw
-```
-
-## Available Functions
-
-| Function | Returns | Description |
-|----------|---------|-------------|
-| `to_ethiopian_date(timestamp)` | `text` | Convert to Ethiopian date (YYYY-MM-DD) |
-| `from_ethiopian_date(text)` | `timestamp` | Convert Ethiopian to Gregorian |
-| `to_ethiopian_timestamp(timestamp)` | `timestamp` | Convert preserving time |
-| `current_ethiopian_date()` | `text` | Current Ethiopian date |
-
-## Programmatic Usage
+## API
 
 ```typescript
-import { getSql, getSqlPath } from '@huluwz/pg-ethiopian-calendar'
+import { getSql, VERSION, detectOrm } from '@huluwz/pg-ethiopian-calendar';
 
-// Get SQL content
-const sql = getSql()
-
-// Get path to SQL file
-const path = getSqlPath()
+getSql();        // Full SQL content
+detectOrm();     // Auto-detect installed ORM
+VERSION;         // '1.1.0'
 ```
 
-## Documentation
+## Supported ORMs
 
-- [Prisma Guide](./docs/prisma.md)
-- [Drizzle Guide](./docs/drizzle.md)
-- [TypeORM Guide](./docs/typeorm.md)
-- [Raw SQL Guide](./docs/raw.md)
-
-## Ethiopian Calendar
-
-The Ethiopian calendar (Ge'ez calendar) is a solar calendar with:
-- **13 months**: 12 months of 30 days + 1 month of 5-6 days
-- **7-8 years behind** the Gregorian calendar
-- **New Year** on September 11 (or 12 in leap years)
+- Prisma
+- Drizzle
+- TypeORM
+- Raw SQL
 
 ## Links
 
-- [GitHub Repository](https://github.com/HuluWZ/pg-ethiopian-calendar)
-- [C Extension (PGXN)](https://pgxn.org/dist/pg_ethiopian_calendar/)
-- [Docker Image](https://hub.docker.com/r/huluwz/pg-ethiopian-calendar)
-
-## Author
-
-**Hulunlante Worku** — [hulunlante.w@gmail.com](mailto:hulunlante.w@gmail.com)
+- [GitHub](https://github.com/HuluWZ/pg-ethiopian-calendar)
+- [Documentation](https://github.com/HuluWZ/pg-ethiopian-calendar#readme)
 
 ## License
 
-[PostgreSQL License](LICENSE)
-
+PostgreSQL License
