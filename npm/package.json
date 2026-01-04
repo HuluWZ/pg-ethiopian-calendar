@@ -1,6 +1,6 @@
 {
   "name": "@huluwz/pg-ethiopian-calendar",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "Ethiopian calendar functions for PostgreSQL - works with Prisma, Drizzle, TypeORM",
   "author": "Hulunlante Worku <hulunlante.w@gmail.com>",
   "license": "PostgreSQL",
