@@ -45,7 +45,9 @@ SELECT to_ethiopian_timestamp();                    -- '2018-04-23 14:30:00'
 SELECT ethiopian_calendar_version();                -- '1.1.0'
 ```
 
-## Generated Columns
+## Generated Columns (Timestamp)
+
+Use `to_ethiopian_timestamp()` for DateTime/Timestamp columns:
 
 ```sql
 CREATE TABLE orders (
@@ -56,16 +58,72 @@ CREATE TABLE orders (
 );
 ```
 
+For text format, use `to_ethiopian_date()`:
+
+```sql
+CREATE TABLE events (
+  id SERIAL PRIMARY KEY,
+  event_date TIMESTAMP NOT NULL,
+  event_date_ethiopian VARCHAR(10) GENERATED ALWAYS AS 
+    (to_ethiopian_date(event_date)) STORED
+);
+```
+
 ## With Prisma
+
+### Schema
+
+```prisma
+model Order {
+  id                 Int       @id @default(autoincrement())
+  createdAt          DateTime  @default(now()) @map("created_at")
+  createdAtEthiopian DateTime? @map("created_at_ethiopian")  // Generated column
+
+  @@map("orders")
+}
+```
+
+### ⚠️ Important: Migration Workflow
+
+Prisma doesn't natively support `GENERATED ALWAYS AS` columns. You must create migrations manually:
+
+```bash
+# ❌ DON'T do this - Prisma will generate wrong SQL
+npx prisma migrate dev
+
+# ✅ DO this instead - create empty migration, then edit
+npx prisma migrate dev --create-only --name add_orders_table
+```
+
+Then manually edit `migration.sql`:
+
+```sql
+CREATE TABLE "orders" (
+    "id" SERIAL PRIMARY KEY,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at_ethiopian" TIMESTAMP(3) GENERATED ALWAYS AS 
+        (to_ethiopian_timestamp(created_at)) STORED
+);
+```
+
+Finally apply:
+
+```bash
+npx prisma migrate deploy
+```
+
+### Usage
 
 ```typescript
 const order = await prisma.order.create({
   data: { name: 'Test' }
 });
-console.log(order.createdAtEthiopian); // auto-populated
+console.log(order.createdAtEthiopian); // auto-populated DateTime!
 ```
 
 ## With Drizzle
+
+Drizzle has native support for generated columns:
 
 ```typescript
 import { sql } from 'drizzle-orm';
@@ -76,6 +134,29 @@ export const orders = pgTable('orders', {
   createdAtEthiopian: timestamp('created_at_ethiopian')
     .generatedAlwaysAs(sql`to_ethiopian_timestamp(created_at)`),
 });
+```
+
+## With TypeORM
+
+Use raw SQL in migrations:
+
+```typescript
+export class AddEthiopianCalendar1234567890 implements MigrationInterface {
+  async up(queryRunner: QueryRunner): Promise<void> {
+    // First, run the ethiopian calendar SQL from the package
+    await queryRunner.query(`/* ethiopian calendar functions */`);
+    
+    // Then create table with generated column
+    await queryRunner.query(`
+      CREATE TABLE "orders" (
+        "id" SERIAL PRIMARY KEY,
+        "created_at" TIMESTAMP DEFAULT NOW(),
+        "created_at_ethiopian" TIMESTAMP GENERATED ALWAYS AS 
+          (to_ethiopian_timestamp(created_at)) STORED
+      )
+    `);
+  }
+}
 ```
 
 ## API

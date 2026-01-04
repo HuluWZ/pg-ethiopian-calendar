@@ -178,6 +178,10 @@ All functions have `pg_` prefixed aliases following PostgreSQL naming convention
 
 ### Generated Columns
 
+#### Timestamp Type (Recommended)
+
+Use `to_ethiopian_timestamp()` for full DateTime with time preserved:
+
 ```sql
 CREATE TABLE orders (
     id SERIAL PRIMARY KEY,
@@ -188,6 +192,22 @@ CREATE TABLE orders (
 
 INSERT INTO orders DEFAULT VALUES;
 SELECT * FROM orders;
+-- created_at: 2026-01-04 12:30:00
+-- created_at_ethiopian: 2018-04-26 12:30:00
+```
+
+#### Text Type
+
+Use `to_ethiopian_date()` for date-only string format:
+
+```sql
+CREATE TABLE events (
+    id SERIAL PRIMARY KEY,
+    event_date TIMESTAMP NOT NULL,
+    event_date_ethiopian VARCHAR(10) GENERATED ALWAYS AS 
+        (to_ethiopian_date(event_date)) STORED
+);
+-- event_date_ethiopian: '2018-04-26'
 ```
 
 ### Default Values
@@ -210,15 +230,58 @@ ON orders (to_ethiopian_date(created_at));
 
 ### Prisma
 
+#### Schema
+
+```prisma
+model Order {
+  id                 Int       @id @default(autoincrement())
+  createdAt          DateTime  @default(now()) @map("created_at")
+  createdAtEthiopian DateTime? @map("created_at_ethiopian")  // Generated column
+
+  @@map("orders")
+}
+```
+
+#### ⚠️ Important: Migration Workflow
+
+Prisma doesn't natively support `GENERATED ALWAYS AS` columns. You must create migrations manually:
+
+```bash
+# ❌ DON'T do this - Prisma will generate wrong SQL
+npx prisma migrate dev
+
+# ✅ DO this instead - create empty migration, then edit
+npx prisma migrate dev --create-only --name add_orders_table
+```
+
+Then manually edit `migration.sql`:
+
+```sql
+CREATE TABLE "orders" (
+    "id" SERIAL PRIMARY KEY,
+    "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "created_at_ethiopian" TIMESTAMP(3) GENERATED ALWAYS AS 
+        (to_ethiopian_timestamp(created_at)) STORED
+);
+```
+
+Finally apply:
+
+```bash
+npx prisma migrate deploy
+```
+
+#### Usage
+
 ```typescript
 // Ethiopian date is automatically populated via generated column!
 const order = await prisma.order.create({
   data: { customerName: 'Abebe Kebede' }
 })
-console.log(order.createdAtEthiopian) // Ethiopian timestamp
+console.log(order.createdAtEthiopian) // Ethiopian timestamp (DateTime)
 
 // Raw query
-const today = await prisma.$queryRaw`SELECT current_ethiopian_date()`
+const today = await prisma.$queryRaw`SELECT to_ethiopian_date()`
 ```
 
 📖 [Full Prisma Guide](./npm/docs/prisma.md)

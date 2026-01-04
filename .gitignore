@@ -10,6 +10,7 @@
 # PostgreSQL extension build files
 Makefile.bak
 
+test-prisma/
 # Test artifacts
 test/pgdata/
 test/*.log
