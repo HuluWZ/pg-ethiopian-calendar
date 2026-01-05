@@ -306,6 +306,29 @@ export const orders = pgTable('orders', {
 - 📖 [TypeORM Guide](./npm/docs/typeorm.md)
 - 📖 [Raw SQL Guide](./npm/docs/raw.md)
 
+## Examples
+
+Complete working demos are available for each ORM:
+
+| Example | ORM | Use Case | Features |
+|---------|-----|----------|----------|
+| [prisma/](./examples/prisma/) | Prisma | E-commerce | Orders, customers, generated columns |
+| [drizzle/](./examples/drizzle/) | Drizzle | Event Management | Holidays, appointments, Ethiopian-only dates |
+| [typeorm/](./examples/typeorm/) | TypeORM | Blog Platform | Posts, comments, publish workflow |
+
+**Quick start:**
+
+```bash
+cd examples/drizzle  # or prisma, typeorm
+npm install
+cp env.example .env  # Set your DATABASE_URL
+npm run dev
+```
+
+**Requirements:** Node.js >= 16, PostgreSQL >= 12
+
+📖 [All Examples & Documentation](./examples/)
+
 ## Ethiopian Calendar Overview
 
 | Property | Value |

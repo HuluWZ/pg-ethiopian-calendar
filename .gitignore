@@ -11,6 +11,11 @@
 Makefile.bak
 
 test-prisma/
+
+# Examples
+examples/*/node_modules/
+examples/*/.env
+
 # Test artifacts
 test/pgdata/
 test/*.log

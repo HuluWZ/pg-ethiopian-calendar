@@ -176,6 +176,27 @@ VERSION;         // '1.1.0'
 - TypeORM
 - Raw SQL
 
+## Examples
+
+Complete working examples are available for each ORM:
+
+| Example | Description | Port |
+|---------|-------------|------|
+| [Prisma](https://github.com/HuluWZ/pg-ethiopian-calendar/tree/main/examples/prisma) | E-commerce demo | 3001 |
+| [Drizzle](https://github.com/HuluWZ/pg-ethiopian-calendar/tree/main/examples/drizzle) | Event management | 3002 |
+| [TypeORM](https://github.com/HuluWZ/pg-ethiopian-calendar/tree/main/examples/typeorm) | Blog platform | 3003 |
+
+```bash
+# Clone and run an example
+git clone https://github.com/HuluWZ/pg-ethiopian-calendar.git
+cd pg-ethiopian-calendar/examples/drizzle
+npm install
+cp env.example .env  # Configure DATABASE_URL
+npm run dev
+```
+
+📖 [All Examples](https://github.com/HuluWZ/pg-ethiopian-calendar/tree/main/examples)
+
 ## Links
 
 - [GitHub](https://github.com/HuluWZ/pg-ethiopian-calendar)

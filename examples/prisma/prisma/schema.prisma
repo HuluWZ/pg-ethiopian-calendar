@@ -1,0 +1,62 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Customer {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  orders    Order[]
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("customers")
+}
+
+model Order {
+  id                 Int       @id @default(autoincrement())
+  orderNumber        String    @unique @map("order_number")
+  customerId         Int       @map("customer_id")
+  customer           Customer  @relation(fields: [customerId], references: [id])
+  totalAmount        Decimal   @map("total_amount") @db.Decimal(10, 2)
+  status             String    @default("pending")
+  items              OrderItem[]
+  
+  // Gregorian timestamps
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+  
+  // Ethiopian timestamps (generated columns - defined in migration)
+  createdAtEthiopian DateTime? @map("created_at_ethiopian")
+  updatedAtEthiopian DateTime? @map("updated_at_ethiopian")
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id        Int     @id @default(autoincrement())
+  orderId   Int     @map("order_id")
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   String
+  quantity  Int
+  price     Decimal @db.Decimal(10, 2)
+
+  @@map("order_items")
+}
+
+model Event {
+  id                   Int       @id @default(autoincrement())
+  title                String
+  description          String?
+  eventDate            DateTime  @map("event_date")
+  eventDateEthiopian   DateTime? @map("event_date_ethiopian")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  createdAtEthiopian   DateTime? @map("created_at_ethiopian")
+
+  @@map("events")
+}
+
