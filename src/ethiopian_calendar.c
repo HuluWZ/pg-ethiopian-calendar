@@ -297,13 +297,19 @@ to_ethiopian_date(PG_FUNCTION_ARGS)
     
     /* Convert PostgreSQL DATE to Gregorian components */
     dateadt_to_gregorian(date_val, &greg_year, &greg_month, &greg_day);
-    
+
     /* Convert Gregorian date to Julian Day Number */
     jdn = gregorian_to_jdn(greg_year, greg_month, greg_day);
-    
+
+    /* Reject dates before Ethiopian calendar epoch (August 29, 8 CE = JDN 1724221) */
+    if (jdn < ETHIOPIAN_EPOCH)
+        ereport(ERROR,
+                (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+                 errmsg("date is before Ethiopian calendar epoch (August 29, 8 CE)")));
+
     /* Convert JDN to Ethiopian calendar */
     jdn_to_ethiopian(jdn, &eth_year, &eth_month, &eth_day);
-    
+
     /* Format as text: "YYYY-MM-DD" */
     snprintf(result_text, sizeof(result_text), "%04d-%02d-%02d", eth_year, eth_month, eth_day);
     
@@ -313,15 +319,14 @@ to_ethiopian_date(PG_FUNCTION_ARGS)
 
 /*
  * PostgreSQL function: to_ethiopian_datetime(timestamp)
- * 
+ *
  * Converts a Gregorian timestamp to an Ethiopian calendar TIMESTAMP WITH TIME ZONE.
  * The date is converted to Ethiopian calendar; the time-of-day remains the same.
- * 
- * Note: The function signature returns TIMESTAMP WITH TIME ZONE, but we
- * return a TIMESTAMP (without time zone) since we preserve the original time.
- * The conversion only affects the date portion.
- * 
- * Returns: TIMESTAMP with Ethiopian calendar date and original time
+ *
+ * The return value uses the internal Timestamp representation; PostgreSQL coerces
+ * it to TIMESTAMP WITH TIME ZONE at the SQL boundary.
+ *
+ * Returns: TIMESTAMPTZ with Ethiopian calendar date and original time
  */
 PG_FUNCTION_INFO_V1(to_ethiopian_datetime);
 
@@ -347,25 +352,31 @@ to_ethiopian_datetime(PG_FUNCTION_ARGS)
     /* Extract date and time components */
     date_val = DatumGetDateADT(DirectFunctionCall1(timestamp_date, TimestampGetDatum(timestamp_val)));
     time_offset = timestamp_val - (date_val * USECS_PER_DAY);
-    
+
     /* Convert PostgreSQL DATE to Gregorian components */
     dateadt_to_gregorian(date_val, &greg_year, &greg_month, &greg_day);
-    
+
     /* Convert Gregorian date to Julian Day Number */
     jdn = gregorian_to_jdn(greg_year, greg_month, greg_day);
-    
+
+    /* Reject dates before Ethiopian calendar epoch (August 29, 8 CE = JDN 1724221) */
+    if (jdn < ETHIOPIAN_EPOCH)
+        ereport(ERROR,
+                (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+                 errmsg("date is before Ethiopian calendar epoch (August 29, 8 CE)")));
+
     /* Convert JDN to Ethiopian calendar */
     jdn_to_ethiopian(jdn, &eth_year, &eth_month, &eth_day);
-    
-    /* 
-     * Create a timestamp using Ethiopian date components as-if they were Gregorian.
-     * This allows the timestamp to display Ethiopian year/month/day values.
+
+    /*
+     * Encode Ethiopian date components into a Gregorian-shaped DateADT so the
+     * timestamp displays Ethiopian year/month/day values.
      */
     eth_date = gregorian_to_dateadt(eth_year, eth_month, eth_day);
-    
+
     /* Combine Ethiopian date with original time */
     result_timestamp = (eth_date * USECS_PER_DAY) + time_offset;
-    
+
     PG_RETURN_TIMESTAMP(result_timestamp);
 }
 
@@ -538,25 +549,31 @@ to_ethiopian_timestamp(PG_FUNCTION_ARGS)
     /* Extract date and time components */
     date_val = DatumGetDateADT(DirectFunctionCall1(timestamp_date, TimestampGetDatum(timestamp_val)));
     time_offset = timestamp_val - (date_val * USECS_PER_DAY);
-    
+
     /* Convert PostgreSQL DATE to Gregorian components */
     dateadt_to_gregorian(date_val, &greg_year, &greg_month, &greg_day);
-    
+
     /* Convert Gregorian date to Julian Day Number */
     jdn = gregorian_to_jdn(greg_year, greg_month, greg_day);
-    
+
+    /* Reject dates before Ethiopian calendar epoch (August 29, 8 CE = JDN 1724221) */
+    if (jdn < ETHIOPIAN_EPOCH)
+        ereport(ERROR,
+                (errcode(ERRCODE_DATETIME_VALUE_OUT_OF_RANGE),
+                 errmsg("date is before Ethiopian calendar epoch (August 29, 8 CE)")));
+
     /* Convert JDN to Ethiopian calendar */
     jdn_to_ethiopian(jdn, &eth_year, &eth_month, &eth_day);
-    
-    /* 
-     * Create a timestamp using Ethiopian date components as-if they were Gregorian.
-     * This allows the timestamp to display Ethiopian year/month/day values.
+
+    /*
+     * Encode Ethiopian date components into a Gregorian-shaped DateADT so the
+     * timestamp displays Ethiopian year/month/day values.
      */
     eth_date = gregorian_to_dateadt(eth_year, eth_month, eth_day);
-    
+
     /* Combine Ethiopian date with original time */
     result_timestamp = (eth_date * USECS_PER_DAY) + time_offset;
-    
+
     PG_RETURN_TIMESTAMP(result_timestamp);
 }
 

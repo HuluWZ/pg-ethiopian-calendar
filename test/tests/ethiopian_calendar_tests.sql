@@ -25,11 +25,11 @@ SELECT has_function(
     'Function to_ethiopian_datetime should exist'
 );
 
--- Test 5: to_ethiopian_date returns DATE type
+-- Test 5: to_ethiopian_date returns TEXT type
 SELECT is(
     pg_typeof(to_ethiopian_date('2024-01-01'::timestamp)),
-    'date'::regtype,
-    'to_ethiopian_date should return DATE type'
+    'text'::regtype,
+    'to_ethiopian_date should return TEXT type'
 );
 
 -- Test 6: to_ethiopian_datetime returns TIMESTAMPTZ type
