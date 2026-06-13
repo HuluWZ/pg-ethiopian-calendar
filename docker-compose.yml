@@ -16,6 +16,16 @@ services:
       - "${POSTGRES_PORT:?Set POSTGRES_PORT in .env}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      - pg_net
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 2s
@@ -50,6 +60,8 @@ services:
       - ./sql:/usr/src/extension/sql:ro
       - ./src:/usr/src/extension/src:ro
       - ./scripts:/usr/src/extension/scripts:ro
+    networks:
+      - pg_net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
       interval: 2s
@@ -76,8 +88,14 @@ services:
       - "${TEST_POSTGRES_PORT:?Set TEST_POSTGRES_PORT in .env}:5432"
     volumes:
       - test_data:/var/lib/postgresql/data
+    networks:
+      - pg_net
     profiles:
       - test
+
+networks:
+  pg_net:
+    driver: bridge
 
 volumes:
   postgres_data:

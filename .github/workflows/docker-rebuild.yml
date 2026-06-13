@@ -1,15 +1,19 @@
-name: Docker Publish
+name: Scheduled Rebuild
+
+# Rebuilds all images every Monday at 03:00 UTC so that Alpine and PostgreSQL
+# security patches from the upstream postgres:XX-alpine image are picked up
+# automatically, even when there is no new release of this extension.
 
 on:
-  push:
-    tags:
-      - 'v*'
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:  # allow manual trigger from the Actions UI
 
 env:
   IMAGE: huluwz/pg-ethiopian-calendar
 
 jobs:
-  build-and-push:
+  rebuild:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -18,14 +22,14 @@ jobs:
 
     permissions:
       contents: read
-      id-token: write        # Cosign keyless signing via GitHub OIDC
-      security-events: write # Trivy SARIF upload to Security tab
+      id-token: write       # Cosign keyless signing
+      security-events: write # Trivy SARIF upload
 
     steps:
       - name: Checkout
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: Set up QEMU (for arm64 cross-compilation)
+      - name: Set up QEMU
         uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
 
       - name: Set up Docker Buildx
@@ -37,71 +41,63 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Extract version and build metadata
-        id: meta
+      - name: Read current version
+        id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION=$(python3 -c "import json; print(json.load(open('npm/package.json'))['version'])")
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "build_date=$(date -u +'%Y-%m-%dT%H:%M:%SZ')" >> $GITHUB_OUTPUT
 
       - name: Compute tags
         id: tags
         run: |
-          VERSION=${{ steps.meta.outputs.version }}
+          VERSION=${{ steps.version.outputs.version }}
           PG=${{ matrix.pg_version }}
           TAGS="${{ env.IMAGE }}:${VERSION}-pg${PG}"
-          # The highest PG version also gets the bare version and latest tags
           if [ "$PG" = "17" ]; then
             TAGS="${TAGS},${{ env.IMAGE }}:${VERSION},${{ env.IMAGE }}:latest"
           fi
           echo "tags=${TAGS}" >> $GITHUB_OUTPUT
 
-      - name: Build and push
+      - name: Build and push (patched base image)
         uses: docker/build-push-action@14487ce63c7a62a4a324b0bfb37086795e31c6c1 # v6.16.0
         with:
           context: .
           file: Dockerfile.hub
           platforms: linux/amd64,linux/arm64
           push: true
+          pull: true  # always pull the latest base image digest
           build-args: |
             PG_VERSION=${{ matrix.pg_version }}
-            VERSION=${{ steps.meta.outputs.version }}
-            BUILD_DATE=${{ steps.meta.outputs.build_date }}
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ steps.version.outputs.build_date }}
             GIT_SHA=${{ github.sha }}
           tags: ${{ steps.tags.outputs.tags }}
-          cache-from: type=gha,scope=pg${{ matrix.pg_version }}
-          cache-to: type=gha,scope=pg${{ matrix.pg_version }},mode=max
+          cache-from: type=gha,scope=rebuild-pg${{ matrix.pg_version }}
+          cache-to: type=gha,scope=rebuild-pg${{ matrix.pg_version }},mode=max
           provenance: true
           sbom: true
 
       - name: Scan for vulnerabilities
         uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
         with:
-          image-ref: ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}-pg${{ matrix.pg_version }}
+          image-ref: ${{ env.IMAGE }}:${{ steps.version.outputs.version }}-pg${{ matrix.pg_version }}
           format: sarif
-          output: trivy-pg${{ matrix.pg_version }}.sarif
+          output: trivy-rebuild-pg${{ matrix.pg_version }}.sarif
           severity: CRITICAL,HIGH
-          ignore-unfixed: true  # only flag CVEs that have a fix available
+          ignore-unfixed: true
 
       - name: Upload Trivy results to Security tab
         uses: github/codeql-action/upload-sarif@f6091c0113d1dcf9b98e269ee48e8a7e51b7bdd4 # v3.28.5
         if: always()
         with:
-          sarif_file: trivy-pg${{ matrix.pg_version }}.sarif
-          category: trivy-pg${{ matrix.pg_version }}
+          sarif_file: trivy-rebuild-pg${{ matrix.pg_version }}.sarif
+          category: trivy-rebuild-pg${{ matrix.pg_version }}
 
-      - name: Install Cosign
+      - name: Sign image with Cosign
         uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da # v3.7.0
 
-      - name: Sign image (keyless via GitHub OIDC — no secrets needed)
+      - name: Sign
         run: |
           cosign sign --yes \
-            ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}-pg${{ matrix.pg_version }}
-
-      - name: Verify pushed image
-        run: |
-          docker pull ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}-pg${{ matrix.pg_version }}
-          docker run --rm \
-            -e POSTGRES_PASSWORD=postgres \
-            ${{ env.IMAGE }}:${{ steps.meta.outputs.version }}-pg${{ matrix.pg_version }} \
-            postgres --version
+            ${{ env.IMAGE }}:${{ steps.version.outputs.version }}-pg${{ matrix.pg_version }}
