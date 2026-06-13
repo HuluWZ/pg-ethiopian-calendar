@@ -28,7 +28,7 @@ PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
 
 # Docker-based development commands
-.PHONY: docker-start docker-dev docker-stop docker-restart docker-rebuild docker-test docker-shell docker-logs docker-clean docker-status docker-init
+.PHONY: docker-start docker-dev docker-stop docker-restart docker-rebuild docker-test docker-shell docker-logs docker-clean docker-status docker-init docker-publish
 
 # Initialize .env file if it doesn't exist (REQUIRED)
 docker-init:
@@ -218,6 +218,38 @@ docker-clean:
 		echo "❌ Cleanup cancelled"; \
 	fi
 
+# Publish multi-arch images to Docker Hub for all supported PG versions.
+# Usage: make docker-publish VERSION=1.1.2
+docker-publish:
+	@if [ -z "$(VERSION)" ]; then \
+		echo "❌ Usage: make docker-publish VERSION=<version>  (e.g. VERSION=1.1.2)"; \
+		exit 1; \
+	fi
+	@BUILD_DATE=$$(date -u +'%Y-%m-%dT%H:%M:%SZ'); \
+	GIT_SHA=$$(git rev-parse HEAD); \
+	echo "🐳 Publishing huluwz/pg-ethiopian-calendar:$(VERSION) ($$BUILD_DATE  $$GIT_SHA)"; \
+	for PG in 14 15 16 17; do \
+		echo ""; \
+		echo "▶ Building pg$$PG..."; \
+		TAGS="-t huluwz/pg-ethiopian-calendar:$(VERSION)-pg$$PG"; \
+		if [ "$$PG" = "17" ]; then \
+			TAGS="$$TAGS -t huluwz/pg-ethiopian-calendar:$(VERSION) -t huluwz/pg-ethiopian-calendar:latest"; \
+		fi; \
+		docker buildx build \
+			--platform linux/amd64,linux/arm64 \
+			-f Dockerfile.hub \
+			--build-arg PG_VERSION=$$PG \
+			--build-arg VERSION=$(VERSION) \
+			--build-arg BUILD_DATE=$$BUILD_DATE \
+			--build-arg GIT_SHA=$$GIT_SHA \
+			$$TAGS \
+			--push \
+			. || exit 1; \
+		echo "✅ pg$$PG pushed"; \
+	done; \
+	echo ""; \
+	echo "✅ All images published for $(VERSION)"
+
 # Help
 docker-help:
 	@echo "Docker-based commands for Ethiopian Calendar Extension"
@@ -236,10 +268,12 @@ docker-help:
 	@echo "  docker-logs      Show PostgreSQL logs"
 	@echo "  docker-status    Show container and extension status"
 	@echo "  docker-clean     Stop containers and remove volumes"
+	@echo "  docker-publish   Build and push multi-arch images to Docker Hub"
 	@echo "  docker-help      Show this help message"
 	@echo ""
 	@echo "Examples:"
-	@echo "  make docker-start    # Start production PostgreSQL"
-	@echo "  make docker-dev      # Start development PostgreSQL"
-	@echo "  make docker-test     # Run all tests"
-	@echo "  make docker-shell    # Open psql shell"
+	@echo "  make docker-start              # Start production PostgreSQL"
+	@echo "  make docker-dev                # Start development PostgreSQL"
+	@echo "  make docker-test               # Run all tests"
+	@echo "  make docker-shell              # Open psql shell"
+	@echo "  make docker-publish VERSION=1.1.2  # Publish release to Docker Hub"

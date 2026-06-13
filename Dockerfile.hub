@@ -1,29 +1,36 @@
+# syntax=docker/dockerfile:1
 # pg_ethiopian_calendar Docker Image (Alpine - Optimized)
 # PostgreSQL with Ethiopian Calendar extension pre-installed
 #
 # Supports PostgreSQL 14, 15, 16, 17 (Alpine-based for minimal size)
 #
 # Build for specific version (multi-arch):
+#   make docker-publish VERSION=1.1.2
+#
+# Or manually:
 #   docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.hub \
 #     --build-arg PG_VERSION=16 --build-arg VERSION=1.1.2 \
+#     --build-arg BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ) \
+#     --build-arg GIT_SHA=$(git rev-parse HEAD) \
 #     -t huluwz/pg-ethiopian-calendar:1.1.2-pg16 --push .
 #
 # Usage:
 #   docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres huluwz/pg-ethiopian-calendar:1.1.2-pg16
-#
-# Then connect and use:
-#   psql -h localhost -U postgres -c "SELECT to_ethiopian_date(NOW());"
 
 ARG PG_VERSION=16
 ARG VERSION=1.1.2
+ARG BUILD_DATE
+ARG GIT_SHA
 
 #############################################
 # Stage 1: Build the extension
 #############################################
 FROM postgres:${PG_VERSION}-alpine AS builder
 
-# Install build dependencies (minimal for C extension)
-RUN apk add --no-cache build-base
+# BuildKit cache mount keeps the apk package cache across builds,
+# avoiding re-downloads on every rebuild.
+RUN --mount=type=cache,target=/var/cache/apk \
+    apk add build-base
 
 # Copy source files
 COPY src/ /tmp/pg_ethiopian_calendar/src/
@@ -37,24 +44,31 @@ WORKDIR /tmp/pg_ethiopian_calendar
 RUN make USE_PGXS=1 with_llvm=no && make USE_PGXS=1 with_llvm=no install
 
 #############################################
-# Stage 2: Create minimal runtime image
+# Stage 2: Minimal runtime image
 #############################################
 FROM postgres:${PG_VERSION}-alpine
 
-# Re-declare so the ARG is visible in this stage
+# Re-declare ARGs so they are visible in this stage
+ARG PG_VERSION=16
 ARG VERSION=1.1.2
+ARG BUILD_DATE
+ARG GIT_SHA
 
-# Metadata labels
+# Standard OCI image labels
 LABEL maintainer="Hulunlante Worku <hulunlante.w@gmail.com>"
 LABEL org.opencontainers.image.title="pg_ethiopian_calendar"
 LABEL org.opencontainers.image.description="PostgreSQL extension for Ethiopian (Ge'ez) calendar conversions. Convert dates between Gregorian and Ethiopian calendars seamlessly in SQL."
 LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.revision="${GIT_SHA}"
 LABEL org.opencontainers.image.source="https://github.com/HuluWZ/pg-ethiopian-calendar"
+LABEL org.opencontainers.image.url="https://github.com/HuluWZ/pg-ethiopian-calendar"
 LABEL org.opencontainers.image.documentation="https://github.com/HuluWZ/pg-ethiopian-calendar#readme"
 LABEL org.opencontainers.image.licenses="PostgreSQL"
 LABEL org.opencontainers.image.vendor="Hulunlante Worku"
+LABEL org.opencontainers.image.base.name="docker.io/library/postgres:${PG_VERSION}-alpine"
 
-# Categories for Docker Hub
+# Artifact Hub metadata
 LABEL io.artifacthub.package.category="database"
 LABEL io.artifacthub.package.keywords="postgresql,extension,ethiopian,calendar,geez,amharic,africa,date,conversion"
 
@@ -65,5 +79,11 @@ COPY --from=builder /usr/local/lib/postgresql/ethiopian_calendar.so /usr/local/l
 # Auto-create extension on database initialization
 RUN echo "CREATE EXTENSION IF NOT EXISTS pg_ethiopian_calendar;" > /docker-entrypoint-initdb.d/01-pg_ethiopian_calendar.sql
 
-# Default working directory
+# Health check — verifies postgres is accepting connections.
+# Note: USER is intentionally not set here. The base postgres entrypoint
+# runs as root, then drops to the postgres user via gosu before starting
+# the postgres process. Setting USER postgres would break that flow.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+    CMD pg_isready -U "${POSTGRES_USER:-postgres}" || exit 1
+
 WORKDIR /
