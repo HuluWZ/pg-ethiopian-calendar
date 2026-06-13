@@ -4,7 +4,10 @@
   "description": "Ethiopian calendar functions for PostgreSQL - works with Prisma, Drizzle, TypeORM",
   "author": "Hulunlante Worku <hulunlante.w@gmail.com>",
   "license": "PostgreSQL",
-  "repository": "HuluWZ/pg-ethiopian-calendar",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HuluWZ/pg-ethiopian-calendar.git"
+  },
   "homepage": "https://github.com/HuluWZ/pg-ethiopian-calendar#readme",
   "bugs": "https://github.com/HuluWZ/pg-ethiopian-calendar/issues",
   "main": "dist/index.js",
