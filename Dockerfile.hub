@@ -18,7 +18,7 @@
 #   docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres huluwz/pg-ethiopian-calendar:1.1.2-pg16
 
 ARG PG_VERSION=17
-ARG VERSION=1.1.2
+ARG VERSION=1.1.3
 ARG BUILD_DATE
 ARG GIT_SHA
 
@@ -60,7 +60,7 @@ FROM postgres:${PG_VERSION}-alpine
 
 # Re-declare ARGs so they are visible in this stage
 ARG PG_VERSION=16
-ARG VERSION=1.1.2
+ARG VERSION=1.1.3
 ARG BUILD_DATE
 ARG GIT_SHA
 
