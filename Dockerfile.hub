@@ -3,12 +3,13 @@
 #
 # Supports PostgreSQL 14, 15, 16, 17 (Alpine-based for minimal size)
 #
-# Build for specific version:
-#   docker build -f Dockerfile.hub --build-arg PG_VERSION=14 -t huluwz/pg-ethiopian-calendar:1.1.0-pg14 .
-#   docker build -f Dockerfile.hub --build-arg PG_VERSION=16 -t huluwz/pg-ethiopian-calendar:1.1.0-pg16 .
+# Build for specific version (multi-arch):
+#   docker buildx build --platform linux/amd64,linux/arm64 -f Dockerfile.hub \
+#     --build-arg PG_VERSION=16 --build-arg VERSION=1.1.2 \
+#     -t huluwz/pg-ethiopian-calendar:1.1.2-pg16 --push .
 #
 # Usage:
-#   docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres huluwz/pg-ethiopian-calendar:1.1.0-pg14
+#   docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres huluwz/pg-ethiopian-calendar:1.1.2-pg16
 #
 # Then connect and use:
 #   psql -h localhost -U postgres -c "SELECT to_ethiopian_date(NOW());"
