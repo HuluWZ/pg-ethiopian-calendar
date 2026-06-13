@@ -173,21 +173,7 @@ docker-psql:
 	fi
 
 # Open psql shell (alias for docker-psql)
-docker-shell:
-	@if [ ! -f .env ]; then \
-		echo "❌ Error: .env file not found"; \
-		exit 1; \
-	fi
-	@ENV_FILE="$$(pwd)/.env" && \
-	set -a && . "$$ENV_FILE" && set +a && \
-	if docker compose ps postgres-dev 2>/dev/null | grep -q "Up"; then \
-		docker compose exec postgres-dev psql -U $$POSTGRES_USER; \
-	elif docker compose ps postgres 2>/dev/null | grep -q "Up"; then \
-		docker compose exec postgres psql -U $$POSTGRES_USER; \
-	else \
-		echo "❌ No PostgreSQL container is running. Start with 'make docker-start' or 'make docker-dev'"; \
-		exit 1; \
-	fi
+docker-shell: docker-psql
 
 # Show logs
 docker-logs:

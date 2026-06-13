@@ -11,6 +11,9 @@ CONTRIBUTING.md
 # Test files (not needed in main Docker image)
 test/
 
+# NPM package (not needed in Docker image)
+npm/
+
 # Build artifacts
 *.o
 *.so

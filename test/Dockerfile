@@ -1,68 +1,49 @@
 # Dockerfile for testing pg_ethiopian_calendar extension
-# Supports PostgreSQL 11+
-# Base image: PostgreSQL (version specified via ARG)
-ARG PG_VERSION=14
-FROM postgres:${PG_VERSION}
+# Alpine-based to match production images (Dockerfile / Dockerfile.hub)
+ARG PG_VERSION=16
+FROM postgres:${PG_VERSION}-alpine
 
-# Get PostgreSQL major version
-RUN PG_MAJOR=$(pg_config --version | sed -E 's/PostgreSQL ([0-9]+)\..*/\1/') && \
-    echo "Building for PostgreSQL ${PG_MAJOR}" && \
-    echo ${PG_MAJOR} > /tmp/pg_major_version
+# Install build tools + Perl stack for pgTAP / pg_prove
+RUN apk add --no-cache \
+    build-base \
+    bash \
+    git \
+    perl \
+    perl-dev \
+    wget \
+    make \
+    ca-certificates
 
-# Install build dependencies
-RUN PG_MAJOR=$(cat /tmp/pg_major_version) && \
-    apt-get update && \
-    apt-get install -y \
-        build-essential \
-        postgresql-server-dev-${PG_MAJOR} \
-        cpanminus \
-        make \
-        gcc \
-        libc6-dev \
-        git \
-        wget \
-        ca-certificates \
-        perl \
-        libperl-dev \
-        postgresql-plperl-${PG_MAJOR} \
-        && \
-    # Install pgTAP from source
-    cd /tmp && \
+# Install cpanminus, then the pg_prove Perl module
+RUN wget -q -O /tmp/cpanminus https://cpanmin.us && \
+    perl /tmp/cpanminus App::cpanminus && \
+    cpanm --notest TAP::Parser::SourceHandler::pgTAP TAP::Harness && \
+    rm /tmp/cpanminus
+
+# Build pgTAP from source (not available in Alpine apk repos)
+RUN cd /tmp && \
     git clone --depth 1 https://github.com/theory/pgtap.git && \
     cd pgtap && \
     make && \
     make install && \
-    # Install Perl dependencies for pg_prove
-    cpanm --notest TAP::Parser::SourceHandler::pgTAP TAP::Harness && \
-    # Clean up
-    cd / && \
-    rm -rf /tmp/pgtap /tmp/pg_major_version && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+    rm -rf /tmp/pgtap
 
-# Set working directory
 WORKDIR /usr/src/extension
 
-# Copy extension source files
+# Copy and build the extension
 COPY Makefile ./
 COPY pg_ethiopian_calendar.control ./
 COPY sql/ ./sql/
 COPY src/ ./src/
 
-# Build the extension (but don't install yet - will install in test script)
-RUN make clean || true && \
-    make
+RUN make clean 2>/dev/null || true && make
 
-# Copy test files
+# Copy test files and make the test runner executable
 COPY test/ ./test/
+RUN chmod +x ./test/run-tests.sh ./test/pgtest.sh
 
-# Set up test script as executable
-RUN chmod +x /usr/src/extension/test/pgtest.sh
-
-# Set environment variables
 ENV PGDATA=/var/lib/postgresql/data
-# PostgreSQL environment variables must be provided via docker-compose or .env file
-# Required: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 
-# Default command: start postgres and run tests
-CMD ["bash", "-c", "docker-entrypoint.sh postgres & sleep 5 && /usr/src/extension/test/pgtest.sh"]
+# run-tests.sh starts postgres in the background then calls pgtest.sh,
+# which polls pg_isready — no blind sleep needed.
+CMD ["/usr/src/extension/test/run-tests.sh"]

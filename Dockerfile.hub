@@ -14,6 +14,7 @@
 #   psql -h localhost -U postgres -c "SELECT to_ethiopian_date(NOW());"
 
 ARG PG_VERSION=16
+ARG VERSION=1.1.2
 
 #############################################
 # Stage 1: Build the extension
@@ -39,11 +40,14 @@ RUN make USE_PGXS=1 with_llvm=no && make USE_PGXS=1 with_llvm=no install
 #############################################
 FROM postgres:${PG_VERSION}-alpine
 
+# Re-declare so the ARG is visible in this stage
+ARG VERSION=1.1.2
+
 # Metadata labels
 LABEL maintainer="Hulunlante Worku <hulunlante.w@gmail.com>"
 LABEL org.opencontainers.image.title="pg_ethiopian_calendar"
 LABEL org.opencontainers.image.description="PostgreSQL extension for Ethiopian (Ge'ez) calendar conversions. Convert dates between Gregorian and Ethiopian calendars seamlessly in SQL."
-LABEL org.opencontainers.image.version="1.1.0"
+LABEL org.opencontainers.image.version="${VERSION}"
 LABEL org.opencontainers.image.source="https://github.com/HuluWZ/pg-ethiopian-calendar"
 LABEL org.opencontainers.image.documentation="https://github.com/HuluWZ/pg-ethiopian-calendar#readme"
 LABEL org.opencontainers.image.licenses="PostgreSQL"

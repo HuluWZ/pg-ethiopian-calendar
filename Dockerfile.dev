@@ -11,27 +11,14 @@ RUN apk add --no-cache build-base bash
 # Set working directory
 WORKDIR /usr/src/extension
 
+# Copy the startup script (builds extension then starts postgres)
+COPY scripts/build-and-run.sh /usr/local/bin/build-and-run.sh
+RUN chmod +x /usr/local/bin/build-and-run.sh
+
 # PostgreSQL environment variables must be provided via docker-compose or .env file
 # Required: POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB
 
 EXPOSE 5432
 
-# Create a script that builds and installs the extension
-RUN echo '#!/bin/bash' > /usr/local/bin/build-and-run.sh && \
-    echo 'set -e' >> /usr/local/bin/build-and-run.sh && \
-    echo 'cd /usr/src/extension' >> /usr/local/bin/build-and-run.sh && \
-    echo 'if [ -f Makefile ]; then' >> /usr/local/bin/build-and-run.sh && \
-    echo '    echo "Building extension..."' >> /usr/local/bin/build-and-run.sh && \
-    echo '    make clean 2>/dev/null || true' >> /usr/local/bin/build-and-run.sh && \
-    echo '    make USE_PGXS=1 with_llvm=no' >> /usr/local/bin/build-and-run.sh && \
-    echo '    make USE_PGXS=1 with_llvm=no install' >> /usr/local/bin/build-and-run.sh && \
-    echo '    echo "Extension built and installed successfully!"' >> /usr/local/bin/build-and-run.sh && \
-    echo 'else' >> /usr/local/bin/build-and-run.sh && \
-    echo '    echo "Warning: Makefile not found. Source code should be mounted at /usr/src/extension"' >> /usr/local/bin/build-and-run.sh && \
-    echo 'fi' >> /usr/local/bin/build-and-run.sh && \
-    echo 'exec docker-entrypoint.sh postgres "$@"' >> /usr/local/bin/build-and-run.sh && \
-    chmod +x /usr/local/bin/build-and-run.sh
-
-# Override entrypoint to build extension before starting PostgreSQL
 ENTRYPOINT ["/usr/local/bin/build-and-run.sh"]
 CMD ["postgres"]
