@@ -1,7 +1,7 @@
 import { readFileSync, existsSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 
-export const VERSION = "1.1.3";
+export const VERSION = "1.1.4";
 
 export type SupportedORM = "prisma" | "drizzle" | "typeorm" | "raw";
 
