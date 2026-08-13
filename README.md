@@ -334,7 +334,7 @@ npm run dev
 | Property | Value |
 |----------|-------|
 | Months | 13 (12 × 30 days + 1 × 5-6 days) |
-| Leap Year | Every 4 years (year % 4 == 3) |
+| Leap Year | Every 4 years (year % 4 == 0) |
 | New Year | September 11-12 (Gregorian) |
 | Year Offset | ~7-8 years behind Gregorian |
 

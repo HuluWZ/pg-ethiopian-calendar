@@ -95,7 +95,7 @@ BEGIN
     ELSE
         e_month := 13;
         e_day := day_of_year - 360 + 1;
-        is_leap := (e_year % 4 = 3);
+        is_leap := (e_year % 4 = 0);
         max_days := CASE WHEN is_leap THEN 6 ELSE 5 END;
         IF e_day > max_days THEN
             e_day := max_days;
@@ -140,7 +140,7 @@ BEGIN
                 USING ERRCODE = 'datetime_field_overflow';
         END IF;
     ELSE
-        is_leap := (e_year % 4 = 3);
+        is_leap := (e_year % 4 = 0);
         max_days := CASE WHEN is_leap THEN 6 ELSE 5 END;
         IF e_day > max_days THEN
             RAISE EXCEPTION 'Invalid Ethiopian day: % (month 13 has % days in year %)', e_day, max_days, e_year
