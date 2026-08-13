@@ -93,7 +93,7 @@ jdn_to_gregorian(int jdn, int *year, int *month, int *day)
  *   - 12 months of 30 days each (months 1-12: Meskerem, Tikimt, Hidar, Tahsas, etc.)
  *   - 1 month of 5 or 6 days (month 13, Pagumē)
  *   - Leap years have 6 days in month 13, regular years have 5
- *   - Leap years occur every 4 years (years where year % 4 == 3)
+ *   - Leap years occur every 4 years (years where year % 4 == 0)
  *   - Year 1 in Ethiopian calendar started on August 29, 8 CE (Gregorian)
  * 
  * Formula from Calendrical Calculations:
@@ -159,8 +159,8 @@ jdn_to_ethiopian(int jdn, int *year, int *month, int *day)
         *day = day_of_year - 360 + 1;
         
         /* Validate: month 13 has 5 days in regular years, 6 in leap years */
-        /* Leap years: year % 4 == 3 */
-        is_leap = (*year % 4 == 3);
+        /* Leap years: year % 4 == 0 */
+        is_leap = (*year % 4 == 0);
         max_days = is_leap ? 6 : 5;
         
         if (*day > max_days)
@@ -447,7 +447,7 @@ from_ethiopian_date(PG_FUNCTION_ARGS)
     }
     else /* month == 13 */
     {
-        int is_leap = (eth_year % 4 == 3);
+        int is_leap = (eth_year % 4 == 0);
         int max_days = is_leap ? 6 : 5;
         if (eth_day > max_days)
         {
