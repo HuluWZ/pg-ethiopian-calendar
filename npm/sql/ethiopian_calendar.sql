@@ -11,7 +11,7 @@ RETURNS text
 LANGUAGE sql
 IMMUTABLE
 AS $$
-    SELECT '1.1.2'::text;
+    SELECT '1.1.3'::text;
 $$;
 
 CREATE OR REPLACE FUNCTION _gregorian_to_jdn(g_year integer, g_month integer, g_day integer)
