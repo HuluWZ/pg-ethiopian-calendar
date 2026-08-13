@@ -4,7 +4,7 @@
 BEGIN;
 
 -- Test 1: Extension loads correctly
-SELECT plan(35);
+SELECT plan(40);
 
 -- Test 2: Extension exists
 SELECT has_extension('pg_ethiopian_calendar', 'Extension pg_ethiopian_calendar should exist');
@@ -119,7 +119,7 @@ SELECT ok(
 );
 
 -- Test 17: Ethiopian leap year boundary test
--- Ethiopian leap years occur when year % 4 == 3
+-- Ethiopian leap years occur when year % 4 == 0
 -- Test around Pagumē (month 13) which has 5 or 6 days
 SELECT ok(
     to_ethiopian_date('2024-09-05'::timestamp) IS NOT NULL,
@@ -312,6 +312,43 @@ SELECT ok(
         WHERE n.nspname = 'public' AND p.proname = 'pg_ethiopian_to_timestamp'
     ),
     'pg_ethiopian_to_timestamp alias should exist'
+);
+
+-- Test 36: Ethiopian year 2016 is a true leap year (2016 % 4 == 0) - Pagumē has 6 days,
+-- and the 6th epagomenal day must not be clamped away.
+SELECT is(
+    to_ethiopian_date('2024-09-10'::timestamp),
+    '2016-13-06',
+    'to_ethiopian_date should report Pagume 6 (not clamp to 5) in a true leap year'
+);
+
+-- Test 37: The day before should still correctly be Pagume 5
+SELECT is(
+    to_ethiopian_date('2024-09-09'::timestamp),
+    '2016-13-05',
+    'to_ethiopian_date should report Pagume 5 the day before the leap day'
+);
+
+-- Test 38: from_ethiopian_date should accept a valid leap-year Pagume 6 date
+SELECT is(
+    from_ethiopian_date('2016-13-06'),
+    '2024-09-10 00:00:00'::timestamp,
+    'from_ethiopian_date should accept Pagume 6 in a true leap year (2016)'
+);
+
+-- Test 39: from_ethiopian_date should reject Pagume 6 in a non-leap year (2015 % 4 == 3, not leap)
+SELECT throws_ok(
+    $$SELECT from_ethiopian_date('2015-13-06')$$,
+    '22008',
+    NULL,
+    'from_ethiopian_date should reject Pagume 6 in a non-leap year (2015)'
+);
+
+-- Test 40: Round-trip conversion across a leap-year Pagume boundary
+SELECT is(
+    to_ethiopian_date(from_ethiopian_date('2016-13-06')),
+    '2016-13-06',
+    'Round-trip conversion should preserve leap-year Pagume 6'
 );
 
 ROLLBACK;
