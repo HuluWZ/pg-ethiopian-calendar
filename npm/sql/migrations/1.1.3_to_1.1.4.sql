@@ -1,4 +1,4 @@
--- Ethiopian Calendar Upgrade: 1.1.2 → 1.1.3
+-- Ethiopian Calendar Upgrade: 1.1.3 → 1.1.4
 -- Fixes: incorrect Ethiopian leap-year rule (was year % 4 == 3, now year % 4 == 0)
 --
 -- This corrects a bug where Pagumē 6 (the 6th epagomenal day) was silently
@@ -16,9 +16,9 @@ BEGIN
 END;
 $$;
 
--- Bump version string (was '1.1.2', now '1.1.3')
+-- Bump version string (was '1.1.3', now '1.1.4')
 CREATE OR REPLACE FUNCTION ethiopian_calendar_version()
-RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT '1.1.3'::text; $$;
+RETURNS text LANGUAGE sql IMMUTABLE AS $$ SELECT '1.1.4'::text; $$;
 
 -- Fix _jdn_to_ethiopian: correct leap-year check when bounding Pagumē (month 13)
 CREATE OR REPLACE FUNCTION _jdn_to_ethiopian(jdn integer)
